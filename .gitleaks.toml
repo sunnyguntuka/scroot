@@ -25,4 +25,9 @@ paths = [
 regexes = [
   '''sk-(test|example|placeholder|xxxx*)''',
   '''(?i)your[_-]?api[_-]?key[_-]?here''',
+  # Sequential a-z/0-9 placeholder keys used as PII/secret-scrubbing
+  # fixtures in tests/ and examples/ (e.g. "sk-abcdefghij1234567890abcd").
+  '''sk-abcdefghij(klmnopqrstuvwxyz|1234567890abcd)''',
+  # AWS's own published example access key ID (docs.aws.amazon.com).
+  '''AKIAIOSFODNN7EXAMPLE''',
 ]
