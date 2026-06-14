@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg-info/
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test / lint caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local data & secrets
+.env
+.env.*
+.scroot_settings.json
+# Default dashboard feedback store (runtime data, created by `scroot serve`)
+scroot_store.jsonl
+
+# Local server / dev logs
+*.log
+
+# Editor / agent local config
+.claude/
+
+# Ignored source files
+git-ignore-files/
+
+# Benchmark datasets and results (regenerate with prepare_nq.py)
+benchmarks/datasets/*.jsonl
+!benchmarks/datasets/human_judgments_50.jsonl
+benchmarks/results/
+*.db
+
+# Graphify knowledge graph outputs
+graphify-out/
+
+# UI - build artefacts and local dependencies
+src/scroot/ui/node_modules/
+src/scroot/ui/dist/
+src/scroot/ui/vite.log
+src/scroot/ui/.vite/
+
+# Dev tooling / screenshots
+.venv_bench/
+browser-screenshots/
+
+# Vector / agent DB files
+ruvector.db

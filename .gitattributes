@@ -1,0 +1,10 @@
+# Force LF line endings for all text files so CI (Linux) always gets LF
+* text=auto eol=lf
+
+# Explicitly mark binary files to prevent corruption
+*.png binary
+*.jpg binary
+*.svg binary
+*.ico binary
+*.pyc binary
+*.db  binary

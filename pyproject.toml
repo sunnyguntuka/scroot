@@ -1,0 +1,80 @@
+[project]
+name = "scroot"
+version = "0.2.0"
+description = "LLM-free response quality scoring. Grade every response. No second LLM call."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "sunnyguntuka", email = "sunnyguntuka.smi@gmail.com"},
+]
+keywords = [
+    "llm", "evaluation", "nlp", "rag", "quality-scoring",
+    "nli", "hallucination-detection", "groundedness", "ai-evaluation",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "sentence-transformers>=3.0,<6.0",
+    "numpy>=1.24,<3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/sunnyguntuka/scroot"
+Repository = "https://github.com/sunnyguntuka/scroot"
+Documentation = "https://github.com/sunnyguntuka/scroot#readme"
+Issues = "https://github.com/sunnyguntuka/scroot/issues"
+Changelog = "https://github.com/sunnyguntuka/scroot/blob/main/CHANGELOG.md"
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov", "ruff", "sqlalchemy>=2.0", "cryptography>=41.0"]
+ci = ["pytest", "pytest-cov", "ruff", "sqlalchemy>=2.0", "cryptography>=41.0", "numpy>=1.24,<3.0", "fastapi>=0.110", "httpx>=0.27.0", "typer>=0.9", "pyyaml>=6.0"]
+pandas = ["pandas"]
+security = ["cryptography>=41.0"]
+database = ["sqlalchemy>=2.0"]
+bench     = ["scipy>=1.10", "datasets>=2.14", "tqdm>=4.65", "matplotlib>=3.7", "psutil>=5.9"]
+dashboard = ["fastapi>=0.110", "uvicorn>=0.29", "python-multipart>=0.0.9", "typer>=0.9", "pyyaml>=6.0"]
+local = ["llama-cpp-python>=0.2.90", "huggingface-hub>=0.23.0"]
+api = ["httpx>=0.27.0", "openai>=1.0.0"]
+all = ["scroot[local]", "scroot[api]"]
+
+[project.scripts]
+scroot = "scroot.cli:app"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# L-2: ship the built React dashboard (src/scroot/ui/dist) inside the wheel
+# so `scroot serve` works after `pip install scroot`. The dist tree is not
+# a Python package, so it must be declared as package data on `scroot`.
+[tool.setuptools.package-data]
+scroot = ["ui/dist/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "needs_model: marks tests that require sentence-transformers model weights (deselect with '-m not needs_model')",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+# Ad-hoc dev/smoke scripts, not part of the shipped package or its lint gate.
+extend-exclude = ["scripts"]

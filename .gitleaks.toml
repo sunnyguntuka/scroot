@@ -1,0 +1,28 @@
+title = "scroot gitleaks config"
+
+# Use the default Gitleaks ruleset (covers common API key/token formats:
+# AWS, GCP, OpenAI, GitHub, Slack, etc.) and layer project-specific
+# allowlisting on top of it.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ignore generated, vendored, and test fixture paths"
+paths = [
+  '''(?i)\.venv/''',
+  '''(?i)node_modules/''',
+  '''(?i)dist/''',
+  '''(?i)build/''',
+  '''(?i)\.scroot/''',
+  '''(?i)coverage\.xml''',
+  '''(?i)package-lock\.json''',
+  '''(?i)tests/.*\.(json|jsonl|db)''',
+]
+
+# Example/placeholder credentials used in docs and examples are not real
+# secrets, but keep them out of scope explicitly so contributors don't
+# need to add per-line allowlist comments.
+regexes = [
+  '''sk-(test|example|placeholder|xxxx*)''',
+  '''(?i)your[_-]?api[_-]?key[_-]?here''',
+]

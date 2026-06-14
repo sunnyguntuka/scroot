@@ -1,0 +1,79 @@
+@import "tailwindcss";
+@config "../../tailwind.config.js";
+
+/* ─── Base layer overrides ──────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body, #root {
+    height: 100%;
+    @apply bg-indigo-50 text-indigo-950;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Thin scrollbars on Webkit */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-indigo-200 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-indigo-300; }
+
+  ::selection { @apply bg-indigo-100 text-indigo-700; }
+}
+
+/* ─── Component layer ───────────────────────────────────────────────── */
+@layer components {
+  /* Skeleton shimmer */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      theme('colors.indigo.50') 25%,
+      theme('colors.indigo.100') 50%,
+      theme('colors.indigo.50') 75%
+    );
+    background-size: 600px 100%;
+    animation: shimmer 1.6s infinite linear;
+    @apply rounded-lg;
+  }
+
+  /* Section label - uppercase indigo 11px */
+  .section-label {
+    @apply text-2xs uppercase tracking-widest text-indigo-500 font-medium;
+  }
+
+  /* Card - white, 12px radius, indigo-100 border */
+  .card {
+    @apply bg-white border border-indigo-100 rounded-card;
+    box-shadow: 0 1px 3px 0 rgba(79,70,229,0.04);
+  }
+  .card-hover {
+    @apply transition-all duration-150;
+  }
+  .card-hover:hover {
+    @apply border-indigo-300;
+    box-shadow: 0 4px 12px 0 rgba(79,70,229,0.08), 0 0 0 1px rgba(199,210,254,0.8);
+  }
+
+  /* Form inputs - unified light style */
+  .input {
+    @apply w-full bg-white border border-indigo-100 rounded-lg px-3 py-2
+           text-sm text-indigo-950 placeholder-indigo-300
+           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+           transition-all duration-150;
+  }
+
+  /* Page enter animation */
+  .page-enter {
+    animation: slideUp 200ms ease-out;
+  }
+}
+
+/* ─── Utility layer additions ───────────────────────────────────────── */
+@layer utilities {
+  .font-mono-score {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+}

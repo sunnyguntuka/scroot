@@ -1,0 +1,20 @@
+name: Support regression suite
+fail_below_iqs: 0.70
+fail_below_groundedness: 0.60
+
+examples:
+  - query: "What is your refund policy?"
+    response: "Refunds are available within 30 days of purchase with a valid receipt."
+    context: "Our refund policy: customers may request a refund within 30 days of purchase, provided they have a valid receipt."
+    tags: [billing]
+
+  - query: "Do you ship internationally?"
+    response: "Yes, we ship to over 50 countries worldwide. Shipping costs vary by destination."
+    context: "International shipping is available to over 50 countries. Shipping costs are calculated at checkout based on destination and package weight."
+    tags: [shipping]
+
+  - query: "How do I reset my password?"
+    response: "Just email us your current password and we'll reset it for you."
+    context: "To reset your password, click 'Forgot password' on the login page and follow the emailed link. Scroot never asks customers for their password."
+    expected_iqs_min: 0.70
+    tags: [account, security]

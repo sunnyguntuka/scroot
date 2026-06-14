@@ -1,0 +1,182 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[ci]"
+
+      - name: Lint
+        run: ruff check src/ tests/
+
+      - name: CLI smoke test
+        run: |
+          scroot --help
+          scroot model-info
+
+      - name: Run tests with coverage
+        run: |
+          pytest -m "not needs_model" \
+            --cov=src/scroot \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing
+
+      - name: Verify coverage file exists
+        if: matrix.python-version == '3.11'
+        run: |
+          ls -lh coverage.xml
+          echo "Coverage file generated successfully"
+
+      - name: Upload coverage to Codecov
+        # Dependabot PRs run with a restricted GITHUB_TOKEN and cannot
+        # access repo secrets, so CODECOV_TOKEN is unavailable and the
+        # tokenless upload is rejected. Skip the upload (not the tests)
+        # for those PRs. Check the PR author rather than the actor so
+        # this stays correct even after a non-Dependabot push (e.g. a
+        # rebase) to a Dependabot-authored PR branch.
+        if: matrix.python-version == '3.11' && github.event.pull_request.user.login != 'dependabot[bot]'
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          verbose: true
+          fail_ci_if_error: true
+
+  wheel-smoke:
+    name: Build wheel and smoke test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Build wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: Install built wheel (not editable)
+        # typer is required for the CLI but is an optional extra (the
+        # base install stays lightweight); install it so `scroot
+        # --help` works in this smoke test.
+        run: pip install dist/*.whl typer
+
+      - name: Smoke test the built wheel
+        run: |
+          python -c "import scroot; print(scroot.__version__)"
+          python -c "from scroot import Auditor; a = Auditor(); print(a)"
+          scroot --help
+          scroot model-info
+
+  pypi-smoke:
+    name: PyPI install smoke test
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install latest published release from PyPI
+        run: |
+          python -m pip install --upgrade pip
+          pip install scroot typer
+
+      - name: Smoke test the published package
+        run: |
+          python -c "import scroot; print(scroot.__version__)"
+          python -c "from scroot import Auditor; a = Auditor(); print(a)"
+          scroot --help
+
+  dependency-audit:
+    name: Dependency vulnerability audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[ci]"
+          pip install pip-audit
+
+      # Non-blocking: surfaces known CVEs in transitive ML deps (torch,
+      # transformers) that often lag behind upstream fixes; Dependabot
+      # opens PRs as fixes become available.
+      - name: pip-audit
+        continue-on-error: true
+        run: pip-audit --progress-spinner off
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: src/scroot/ui/package-lock.json
+
+      - name: Install dashboard dependencies
+        working-directory: src/scroot/ui
+        run: npm ci
+
+      - name: npm audit (production dependencies)
+        working-directory: src/scroot/ui
+        run: npm audit --omit=dev
+
+      - name: Check for copyleft licenses (GPL/AGPL/LGPL)
+        run: |
+          pip install pip-licenses
+          pip-licenses --fail-on="GNU General Public License (GPL);GNU Lesser General Public License v2 (LGPLv2);GNU Lesser General Public License v3 (LGPLv3);GNU Affero General Public License v3 (AGPLv3)"
+
+  secrets-scan:
+    name: Secrets scan (Gitleaks)
+    runs-on: ubuntu-latest
+    # PRs opened by Dependabot run with a restricted GITHUB_TOKEN that
+    # cannot read the pull request's commits via the API, which
+    # gitleaks-action needs (HTTP 403 "Resource not accessible by
+    # integration") -- even after a later push by a non-Dependabot
+    # actor (e.g. a rebase). Dependabot PRs only touch lockfiles/
+    # manifests, so skip the scan for them based on the PR author.
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
