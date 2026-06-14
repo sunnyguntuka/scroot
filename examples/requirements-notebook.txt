@@ -1,0 +1,8 @@
+# Runtime deps for the demo notebooks:
+#   examples/scroot_interactive_demo.ipynb
+#   examples/context_builder.ipynb
+# scroot itself is installed editable by setup_notebook_kernel.{ps1,sh}
+
+matplotlib>=3.7
+ipykernel>=6.31.0
+notebook>=7.5.7

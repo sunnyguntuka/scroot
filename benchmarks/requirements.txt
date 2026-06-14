@@ -1,0 +1,22 @@
+# Benchmark dependencies - install with:
+#   pip install -r benchmarks/requirements.txt
+
+# Dataset access
+datasets>=2.14.0        # HuggingFace datasets (NQ, SummEval)
+
+# Scientific computing (likely already present)
+scipy>=1.10.0           # Spearman correlation
+numpy>=1.24.0           # Array ops
+
+# Optional: visualization
+matplotlib>=3.7.0       # Scatter plots (bench_correlation.py)
+
+# Optional: memory profiling
+psutil>=5.9.0           # Peak RSS measurement (bench_speed.py)
+
+# Optional: competitor benchmarks
+# deepeval>=1.0.0       # Requires OPENAI_API_KEY
+# ragas>=0.1.0          # Requires OPENAI_API_KEY
+
+# Progress bars
+tqdm>=4.65.0
