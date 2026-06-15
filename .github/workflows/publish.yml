@@ -115,4 +115,6 @@ jobs:
       - name: Attach SBOM to release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "${{ github.event.release.tag_name }}" sbom.json
+        # No actions/checkout in this job, so there's no .git for gh to
+        # infer the repo from - pass it explicitly.
+        run: gh release upload "${{ github.event.release.tag_name }}" sbom.json --repo "${{ github.repository }}"

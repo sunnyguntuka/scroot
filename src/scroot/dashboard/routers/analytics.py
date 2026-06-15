@@ -150,10 +150,14 @@ def analytics_router(store):
     def flag_distribution(time_range: str = Query("7d", alias="range")):
         records = store.get_all()
         hours = {"24h": 24, "7d": 168, "30d": 720}.get(time_range, 168)
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        now = datetime.now(timezone.utc)
+        cutoff = now - timedelta(hours=hours)
+        prev_cutoff = cutoff - timedelta(hours=hours)
 
         flag_counter: Counter = Counter()
+        prev_flag_counter: Counter = Counter()
         total = 0
+        prev_total = 0
         for r in records:
             try:
                 dt = datetime.fromisoformat(r.timestamp.replace("Z", "+00:00"))
@@ -163,6 +167,10 @@ def analytics_router(store):
                 total += 1
                 for f in (r.flags or []):
                     flag_counter[f] += 1
+            elif dt >= prev_cutoff:
+                prev_total += 1
+                for f in (r.flags or []):
+                    prev_flag_counter[f] += 1
 
         if total == 0:
             return {"flags": []}
@@ -174,7 +182,18 @@ def analytics_router(store):
                     "type": ft,
                     "count": flag_counter.get(ft, 0),
                     "pct": round(flag_counter.get(ft, 0) / total * 100, 1) if total else 0,
-                    "trend_pct": 0.0,  # TODO: compare to previous period
+                    # Percentage-point change in this flag's share of records
+                    # vs. the preceding period of the same length. 0.0 if
+                    # there's no prior-period data to compare against.
+                    "trend_pct": (
+                        round(
+                            flag_counter.get(ft, 0) / total * 100
+                            - prev_flag_counter.get(ft, 0) / prev_total * 100,
+                            1,
+                        )
+                        if prev_total
+                        else 0.0
+                    ),
                 }
                 for ft in flag_types
             ]
