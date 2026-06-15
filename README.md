@@ -399,7 +399,7 @@ result = auditor.score(
     query="Explain quantum computing",
     response="Quantum computing uses qubits that can be in superposition..."
 )
-print(result.groundedness)      # None  (not scored — no context)
+print(result.groundedness)      # None  (not scored - no context)
 print(result.iqs)               # computed from 4 metrics
 print(result.context_used)      # False
 print(result.iqs_metric_count)  # 4
@@ -411,7 +411,7 @@ records `context_used` / `iqs_metric_count` (the dashboard labels these `(4/5)`)
 `score()` without context emits a `NoContextWarning`; an empty/whitespace
 `context` (`""`, `[]`) is treated the same as `None`. A genuine `0.0`
 groundedness (context provided, but unsupported) **is** included and drives IQS
-to 0 — that's a real failure, not missing data. See
+to 0 - that's a real failure, not missing data. See
 [`docs/context_builder.md`](docs/context_builder.md#why-context-matters-for-iqs).
 
 
@@ -597,12 +597,12 @@ scroot serve          # starts at http://localhost:7432
 scroot serve --port 8080
 ```
 
-> **Security — the dashboard is an unauthenticated, single-user, localhost
+> **Security - the dashboard is an unauthenticated, single-user, localhost
 > tool.** By default it binds to `127.0.0.1`, so only your machine can reach
 > it. It stores your correction history and (if you configure API-based
 > correction) your LLM provider key. If you expose it on a routable interface
 > (`--host 0.0.0.0`), require a shared token and/or front it with an
-> authenticating reverse proxy — otherwise anyone on the network can read your
+> authenticating reverse proxy - otherwise anyone on the network can read your
 > data and trigger LLM spend:
 >
 > ```bash

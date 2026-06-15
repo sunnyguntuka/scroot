@@ -303,7 +303,7 @@ context chunk and entailment score.
 ## Why context matters for IQS
 
 `groundedness` is the only metric that needs context. When you score without
-it, groundedness is **not** `0.0` — it is `None` (inapplicable) and is
+it, groundedness is **not** `0.0` - it is `None` (inapplicable) and is
 **excluded** from IQS, with its weight redistributed proportionally across the
 other four metrics:
 

@@ -105,9 +105,9 @@ end-user input.
 The `scroot serve` dashboard is a **local, single-user, unauthenticated**
 tool. Its security posture depends on how it is bound:
 
-- **Default (`127.0.0.1`)** — single-user safe. Only processes on the local
+- **Default (`127.0.0.1`)** - single-user safe. Only processes on the local
   machine can reach the API.
-- **Non-loopback bind (e.g. `--host 0.0.0.0`)** — exposes the entire
+- **Non-loopback bind (e.g. `--host 0.0.0.0`)** - exposes the entire
   correction store *and* the stored LLM provider key to the network. scroot
   emits a startup warning in this case. **Always** set a shared token and/or
   run behind an authenticating reverse proxy.
@@ -115,7 +115,7 @@ tool. Its security posture depends on how it is bound:
 Controls in place:
 
 - **No key disclosure (H-1):** `GET /api/settings` never returns the raw
-  provider API key — only a masked hint (`sk-a…wxyz`) and an `api_key_set`
+  provider API key - only a masked hint (`sk-a…wxyz`) and an `api_key_set`
   boolean. The key is write-only: submitting a blank key leaves the stored
   one unchanged.
 - **File permissions (M-1):** `~/.scroot/config.json` and the working-dir
@@ -153,8 +153,8 @@ and PR and performs three checks:
 - `pip-licenses` with a hard fail on GPL/AGPL/LGPL copyleft licenses.
 
 The `pip-audit` step is intentionally **non-blocking** (`continue-on-error`).
-scroot's heaviest dependencies — `torch` and `transformers`, pulled in
-transitively via `sentence-transformers` — routinely carry CVEs that lag behind
+scroot's heaviest dependencies - `torch` and `transformers`, pulled in
+transitively via `sentence-transformers` - routinely carry CVEs that lag behind
 upstream fixes (e.g. as of this writing `transformers` CVE-2026-1839 is only
 resolved in a `5.0.0rc3` pre-release). Forcing a blocking gate would break CI on
 issues scroot cannot directly remediate, so instead the job **surfaces** them

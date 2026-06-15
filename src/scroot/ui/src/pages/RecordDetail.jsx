@@ -267,7 +267,7 @@ export function RecordDetail({ threshold = 0.70, hasLlmCorrector = false, correc
               {record.context_used === false && (
                 <span
                   className="ml-1 normal-case tracking-normal text-indigo-300"
-                  title="Computed from 4 of 5 metrics — groundedness not scored (no context). Add context for a complete score."
+                  title="Computed from 4 of 5 metrics - groundedness not scored (no context). Add context for a complete score."
                 >
                   ({record.iqs_metric_count ?? 4}/5)
                 </span>

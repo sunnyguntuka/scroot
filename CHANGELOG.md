@@ -103,7 +103,7 @@ to PyPI; their changes are included here.)
 - **IQS now formally excludes groundedness when no context is provided.**
   `groundedness` is `None` (inapplicable), not `0.0`, and is dropped from the
   IQS computation with its weight redistributed proportionally across the
-  remaining four metrics — so a no-context response is scored on 4 metrics, not
+  remaining four metrics - so a no-context response is scored on 4 metrics, not
   penalised as if groundedness were zero. A genuine `0.0` groundedness (context
   provided, NLI found no support) is still included and correctly drives IQS to
   0. New `compute_iqs_detailed(scores, weights, mode)` returns
@@ -119,16 +119,16 @@ to PyPI; their changes are included here.)
 - `EntailmentResult.effective_weights`, `.context_used`, and
   `.iqs_metric_count`: which metrics contributed to IQS and at what
   (redistributed) weight. Included in `to_dict()` and surfaced in the Review
-  Console — the groundedness bar shows a neutral "— not scored" state and the
+  Console - the groundedness bar shows a neutral "— not scored" state and the
   IQS shows a `(4/5)` indicator when scored without context.
 - `NoContextWarning` (emitted by `auditor.score()` when called without
   context, unless the groundedness weight is 0), `GroundednessUnavailableWarning`
   (a groundedness floor was requested but groundedness is `None`), and
   `GroundednessComputationError` (context provided but groundedness scoring
-  raised — degrades to `None` instead of failing the call). All exported from
+  raised - degrades to `None` instead of failing the call). All exported from
   the top-level package.
 - `auditor.score()` now treats empty/whitespace-only context (`""`, `"   "`,
-  `[]`) identically to `None` — groundedness is not computed.
+  `[]`) identically to `None` - groundedness is not computed.
 
 ### Fixed
 - Dashboard SPA deep links / refreshes (`/queue`, `/analytics`, `/queue/{id}`)

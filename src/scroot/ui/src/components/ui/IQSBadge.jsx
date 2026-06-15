@@ -23,7 +23,7 @@ export function IQSBadge({ score, size = 'md', threshold = 0.70, showLabel = fal
       {metricCount < 5 && (
         <span
           className="text-[9px] opacity-70"
-          title={`IQS computed from ${metricCount} of 5 metrics — groundedness not scored (no context). Add context for a complete score.`}
+          title={`IQS computed from ${metricCount} of 5 metrics - groundedness not scored (no context). Add context for a complete score.`}
         >
           ({metricCount}/5)
         </span>

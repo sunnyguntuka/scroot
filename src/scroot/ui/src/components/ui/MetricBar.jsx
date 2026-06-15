@@ -16,7 +16,7 @@ export function MetricBar({ metric, value, showLabel = true, showValue = true, e
   // as a real (empty) bar below.
   if (value === null || value === undefined) {
     return (
-      <div className="flex items-center gap-3" title="not scored — no context provided">
+      <div className="flex items-center gap-3" title="not scored - no context provided">
         {showLabel && (
           <span className="w-28 shrink-0 text-[11px] uppercase tracking-wider text-indigo-400 font-medium">
             {METRIC_LABELS[metric] || metric}
