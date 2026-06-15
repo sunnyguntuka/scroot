@@ -106,7 +106,7 @@ passed = scroot.verify(
 )
 ```
 
-For repeated scoring, instantiate `Auditor` once and reuse it —
+For repeated scoring, instantiate `Auditor` once and reuse it -
 models are loaded once and cached.
 
 More runnable scripts in [examples/](examples/):
@@ -145,7 +145,7 @@ print(result.groundedness)  # now has signal
 ```
 
 `add_retrieved()` accepts plain strings, LangChain `Document`s, ChromaDB
-query results, Pinecone scored vectors, and dicts with a `text` key —
+query results, Pinecone scored vectors, and dicts with a `text` key -
 unrecognised types are skipped with a warning, never a crash.
 
 No context? No problem. scroot scores the other four metrics and returns
@@ -165,9 +165,9 @@ runnable demo: [examples/context_builder.ipynb](examples/context_builder.ipynb)
 Two interactive notebooks tour the full feature set - no API keys or
 credentials needed:
 
-- [examples/scroot_interactive_demo.ipynb](examples/scroot_interactive_demo.ipynb) —
+- [examples/scroot_interactive_demo.ipynb](examples/scroot_interactive_demo.ipynb) -
   every feature: scoring, metrics, IQS, flags, sampling, agents, feedback loop
-- [examples/context_builder.ipynb](examples/context_builder.ipynb) —
+- [examples/context_builder.ipynb](examples/context_builder.ipynb) -
   carrying RAG context to `auditor.score()` with `ContextBuilder`
 
 One command sets everything up (virtualenv, dependencies, Jupyter kernel):

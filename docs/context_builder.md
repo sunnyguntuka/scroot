@@ -4,12 +4,12 @@
 
 `ContextBuilder` is a lightweight, request-scoped accumulator that solves the
 context assembly problem: in a typical RAG pipeline, grounding documents exist
-at retrieval time but the LLM response isn't available until generation —
+at retrieval time but the LLM response isn't available until generation -
 nothing carries the retrieved chunks forward to scoring time. Create a
 `ContextBuilder` at the start of a request, add grounding material as it
 becomes available at each pipeline step, and pass `ctx.build()` to
 `auditor.score()` at the end. Your LLM call is never touched, and groundedness
-— scroot's strongest metric - gets the signal it needs.
+- scroot's strongest metric - gets the signal it needs.
 
 ```python
 # The entire integration - 4 lines added to an existing pipeline
@@ -76,7 +76,7 @@ represent what the LLM actually used. Same accepted types as `add_retrieved()`.
 ### `add_system_prompt(text, *, metadata=None) -> ContextBuilder`
 
 Records the system prompt if it contains grounding instructions or
-domain-specific rules. Included with lower weight than retrieved chunks —
+domain-specific rules. Included with lower weight than retrieved chunks -
 it's instructions, not facts.
 
 ### `add_tool_output(output, *, tool_name, metadata=None) -> ContextBuilder`
@@ -316,7 +316,7 @@ result.effective_weights # {'completeness': 0.3846, 'relevance': 0.3077,
                          #  'consistency': 0.2308, 'confidence': 0.0769}
 ```
 
-This means a 4-metric IQS is **not directly comparable** to a 5-metric one —
+This means a 4-metric IQS is **not directly comparable** to a 5-metric one -
 the same `0.80` was computed by different formulas. The result carries
 `context_used` / `iqs_metric_count` precisely so you can tell them apart (the
 Review Console shows a `(4/5)` indicator and renders the groundedness bar as
