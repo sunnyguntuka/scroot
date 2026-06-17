@@ -39,6 +39,30 @@ jobs:
             src/scroot/ \
           || (echo "ERROR: enterprise/license code found in scroot/ package" && exit 1)
 
+      - name: Assert every seam raises EnterpriseFeatureError without cloud
+        run: |
+          python - <<'EOF'
+          from scroot._messages import SEAM_LABELS
+          from scroot._entitlements import EnterpriseFeatureError, get_enterprise
+          from scroot.testing import reset_registry
+          failed = []
+          for key in SEAM_LABELS:
+              reset_registry()
+              try:
+                  get_enterprise(key)
+                  failed.append(f"{key}: no error raised")
+              except EnterpriseFeatureError:
+                  pass
+              except Exception as exc:
+                  failed.append(f"{key}: wrong error {type(exc).__name__}: {exc}")
+          if failed:
+              print("ERROR: seam upsell path broken:")
+              for f in failed:
+                  print(f"  {f}")
+              raise SystemExit(1)
+          print(f"OK: all {len(SEAM_LABELS)} seams raise EnterpriseFeatureError without cloud")
+          EOF
+
       - name: Check SEAMS.md is up to date
         run: python scripts/list_seams.py --check
 

@@ -134,6 +134,46 @@ The feedback store itself is plaintext JSONL by default. For sensitive data,
 construct `FeedbackStore` with an `encryption_key` (Fernet, at-rest
 encryption) and/or a `field_mask` for fields like `query`/`context_used`.
 
+## scroot-cloud license enforcement — residual risks
+
+scroot-cloud uses offline Ed25519 signature verification with a last-seen
+timestamp guard (stored in `~/.scroot/state`). This section documents what the
+technical controls prevent and what they do not, so buyers and operators can make
+informed risk decisions.
+
+### What Ed25519 prevents
+
+- **Forged tokens**: only the holder of the Ed25519 private key (stored in KMS /
+  Vault outside both repos) can mint a valid token. Any bit flip in the payload
+  causes `BadSignatureError`.
+- **Tampered claims**: changing tier, features, or expiry without re-signing
+  causes `BadSignatureError`.
+- **Expired tokens**: `verify_license()` rejects tokens past their `expires`
+  timestamp.
+- **Naive clock rollback**: `_check_clock_rollback()` raises `LicenseError` if
+  the current time is more than 30 seconds before the last-seen timestamp,
+  mitigating the most common attack (rolling back the system clock to reuse an
+  expired token).
+
+### What the technical controls do NOT prevent
+
+| Scenario | Why not prevented | Mitigation |
+|---|---|---|
+| Token replay across machines | Offline tokens are stateless by design (air-gapped market requirement) | Customer agreement (contractual) |
+| Patching out `get_enterprise()` calls | scroot is Apache-2.0 — forks may remove the call | The cloud implementation is absent; patching the call gains no functionality |
+| Deleting `~/.scroot/state` | An operator with local write access controls the state file | Short token expiry (≤90 days) + auto-renew |
+| Time-of-check / time-of-use within a process | `verify_license()` is called once at plugin load; the `License` object is held in-memory | Runtime checks use the already-verified object; no network-accessible path to force re-verification |
+
+**On-premises and air-gapped enforcement is legal and commercial, not absolute
+technical.** The signature guarantees authenticity of the token; it does not
+prevent a licensee with local system access from keeping an expired token in use
+by deleting state, rolling back system time, or patching source. These are
+contractual violations, not security vulnerabilities. For high-assurance
+environments, combine short token TTLs with automated renewal and host-level
+integrity monitoring.
+
+---
+
 ## Dependency supply chain
 
 - All dependencies are pinned to compatible version ranges in
