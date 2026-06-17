@@ -74,6 +74,39 @@ Key invariants to preserve:
 4. Update `CHANGELOG.md` under `[Unreleased]`.
 5. Open a PR with a clear description of the change and motivation.
 
+## Open-core boundary
+
+scroot is open-core: the scoring engine and all OSS surfaces are Apache-2.0 and
+accept community PRs. The enterprise operated/governed lifecycle lives in a
+separate private package (`scroot-cloud`) and is not part of this repo.
+
+**What is OSS (PRs welcome):**
+- The NLI scoring engine, IQS composite, evidence map
+- `calibrate()` algorithm, `regression_check()`, `register_metric()`
+- `scrub()` PII masking (including `preserve_for_grounding` mode)
+- `runtime.run()` local air-gapped runtime and `preflight()`
+- `review.ui()` local single-user Review Console (`scroot serve`)
+- Numeric grounding verifier (see `git-ignore-files/SCROOT_NUMERIC_GROUNDING_SPEC.md`)
+
+**What is gated in scroot-cloud (not in this repo):**
+- Signed/retained audit evidence bundles (`audit.export`)
+- Managed calibration lifecycle (`calibration.schedule`)
+- Regulatory PII policy management (`pii.policy`)
+- Hosted/operated managed runtime (`runtime.managed`)
+- No-code visual metric builder (`metrics.builder`)
+- Hosted multi-reviewer queue with sign-off (`review.queue`)
+- Continuous drift monitoring via Ampulla (`drift.continuous`)
+
+See `SEAMS.md` for the complete seam-by-seam breakdown with OSS counterparts.
+
+**PRs that add gating to OSS features will be declined.** The invariant is:
+every OSS surface must work fully standalone with no scroot-cloud installed
+and no license. If you find an OSS path that raises `EnterpriseFeatureError`
+or `NotImplementedError`, that is a bug, not a feature.
+
+The seam (`scroot/_entitlements.py`) is a stable public API. Renaming a seam
+key is a major version bump. The 7 seam keys in `SEAMS.md` are stable.
+
 ## License
 
 By contributing, you agree your contributions will be licensed under Apache-2.0.

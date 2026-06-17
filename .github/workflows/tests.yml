@@ -39,6 +39,9 @@ jobs:
             src/scroot/ \
           || (echo "ERROR: enterprise/license code found in scroot/ package" && exit 1)
 
+      - name: Check SEAMS.md is up to date
+        run: python scripts/list_seams.py --check
+
       - name: CLI smoke test
         run: |
           scroot --help

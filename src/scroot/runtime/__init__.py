@@ -83,4 +83,4 @@ def run(request: dict) -> dict:
 
 def managed(*args, **kwargs) -> object:
     """Cloud: hardened/operated managed runtime with autoscaling and SLA gating."""
-    return get_enterprise("runtime.managed", "Managed scoring runtime").start(*args, **kwargs)
+    return get_enterprise("runtime.managed").start(*args, **kwargs)

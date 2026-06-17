@@ -120,6 +120,4 @@ def calibrate(
 
 def schedule_recalibration(agent: object, cadence: str) -> object:
     """Cloud: stored, scheduled, versioned, audit-grade calibration lifecycle."""
-    return get_enterprise(
-        "calibration.schedule", "Managed calibration lifecycle"
-    ).schedule(agent, cadence)
+    return get_enterprise("calibration.schedule").schedule(agent, cadence)

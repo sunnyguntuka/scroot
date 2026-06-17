@@ -38,4 +38,4 @@ def ui(
 
 def queue(*args, **kwargs) -> object:
     """Cloud: hosted multi-reviewer queue with assignment, claim/lock, and sign-off."""
-    return get_enterprise("review.queue", "Hosted review queue").open(*args, **kwargs)
+    return get_enterprise("review.queue").open(*args, **kwargs)

@@ -12,7 +12,7 @@ def open_builder(*args, **kwargs) -> object:
     """Cloud: hosted no-code visual metric builder."""
     from .._entitlements import get_enterprise
 
-    return get_enterprise("metrics.builder", "No-code custom metric builder").open(
+    return get_enterprise("metrics.builder").open(
         *args, **kwargs
     )
 

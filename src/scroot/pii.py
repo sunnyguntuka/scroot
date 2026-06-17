@@ -41,6 +41,4 @@ def scrub(
 
 def policy(*args, **kwargs) -> object:
     """Cloud: regulatory PII policy management, GDPR/HIPAA presets, DLP hooks."""
-    return get_enterprise(
-        "pii.policy", "Regulatory PII policy management"
-    ).apply(*args, **kwargs)
+    return get_enterprise("pii.policy").apply(*args, **kwargs)

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from importlib.metadata import entry_points
 
-DOCS_URL = "https://scroot.dev/cloud"
+from ._messages import DOCS_URL, SEAM_LABELS
 
 
 class EnterpriseFeatureError(NotImplementedError):
@@ -39,9 +39,10 @@ def _ensure_plugins_loaded() -> None:
             logging.getLogger("scroot").warning("plugin %s failed: %s", ep.name, exc)
 
 
-def get_enterprise(name: str, feature_label: str) -> object:
+def get_enterprise(name: str, feature_label: str | None = None) -> object:
     _ensure_plugins_loaded()
     impl = _REGISTRY.get(name)
     if impl is None:
-        raise EnterpriseFeatureError(feature_label)
+        label = feature_label or SEAM_LABELS.get(name, name)
+        raise EnterpriseFeatureError(label)
     return impl

@@ -150,5 +150,5 @@ def export_evidence_bundle(result: object, *, sign: bool = True, retain: bool = 
     """
     from ._entitlements import get_enterprise
 
-    impl = get_enterprise("audit.export", "Audit evidence export")
+    impl = get_enterprise("audit.export")
     return impl.export_evidence_bundle(result, sign=sign, retain=retain)

@@ -125,6 +125,4 @@ def continuous(*args, **kwargs) -> object:
     domain. This seam passes the call through to scroot-cloud, which registers
     the Ampulla integration. See https://scroot.dev/cloud/drift for details.
     """
-    return get_enterprise(
-        "drift.continuous", "Continuous drift monitoring (Ampulla)"
-    ).start(*args, **kwargs)
+    return get_enterprise("drift.continuous").start(*args, **kwargs)
