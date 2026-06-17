@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Inbox, BarChart2, Download, Settings, Wand2, Zap, ShieldCheck } from 'lucide-react';
 import { api } from '../../api/client';
+import scrootLogo from '../../assets/scroot-logo.png';
 
 const NAV = [
   { to: '/queue',     label: 'Inbox',    Icon: Inbox,    badge: 'pending' },
@@ -35,7 +36,7 @@ export function Sidebar({ pendingCount = 0, collapsed = false, activeGuardrails 
       {/* Logo */}
       <div className={`flex items-center gap-2.5 px-4 py-5 border-b border-indigo-100 shrink-0 ${collapsed ? 'justify-center px-0' : ''}`}>
         <img
-          src="/scroot-logo.png"
+          src={scrootLogo}
           alt="scroot"
           className="h-[34px] w-[34px] rounded-lg object-cover shrink-0"
         />
