@@ -78,21 +78,48 @@ _PATTERNS: dict[str, re.Pattern] = {
 }
 
 
-def scrub(text: str) -> ScrubResult:
+def scrub(
+    text: str,
+    *,
+    allowlist: set[str] | None = None,
+    preserve_for_grounding: bool = False,
+) -> ScrubResult:
     """Replace detected PII entities with typed placeholders.
 
     Args:
         text: Raw text that may contain PII.
+        allowlist: Entity-type names to leave unmasked. Keys match the
+            pattern names: EMAIL, PHONE, SSN, CARD, IP, DOB, ADDRESS,
+            PERSON, SECRET.
+        preserve_for_grounding: When True, replaces each entity with a
+            per-document sequential counter placeholder ``[TYPE:N]``
+            (e.g. ``[EMAIL:1]``, ``[EMAIL:2]``). The counter is
+            deterministic within a single call so the same entity
+            appearing in both context and response gets the same
+            placeholder, allowing grounding NLI to match entity
+            references without exposing original values.
 
     Returns:
         ScrubResult with the scrubbed text and a count-only summary.
         The original values are not retained anywhere.
     """
+    allow = allowlist or set()
     summary = {k: 0 for k in _PATTERNS}
     result = text
+    counters: dict[str, int] = {}
+
     for entity_type, pattern in _PATTERNS.items():
-        result, n = pattern.subn(f'[{entity_type}]', result)
+        if entity_type in allow:
+            continue
+        if preserve_for_grounding:
+            def _replace(m: re.Match, et: str = entity_type) -> str:
+                counters[et] = counters.get(et, 0) + 1
+                return f"[{et}:{counters[et]}]"
+            result, n = pattern.subn(_replace, result)
+        else:
+            result, n = pattern.subn(f"[{entity_type}]", result)
         summary[entity_type] = n
+
     total = sum(summary.values())
     return ScrubResult(
         scrubbed_text=result,

@@ -9,14 +9,19 @@ from .sampling import SamplingResult, SamplingStrategy, sample_and_score
 from .composite import RAG_WEIGHTS
 from .context import ContextBuilder, ContextEntry, ContextPayload
 from .evidence import EvidenceEntry, EvidenceMap, build_evidence_map
-from .audit import configure_audit_log
+from .audit import configure_audit_log, export_evidence_bundle
+from .calibrate import CalibrationResult, calibrate, schedule_recalibration
+from .drift import RegressionReport, regression_check
+from .pii import scrub
+from .metrics._registry import register_metric
+from ._entitlements import EnterpriseFeatureError
 from .exceptions import (
     GroundednessComputationError,
     GroundednessUnavailableWarning,
     NoContextWarning,
 )
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __all__ = [
     "Auditor",
     "ContextBuilder",
@@ -33,6 +38,15 @@ __all__ = [
     "sample_and_score",
     "RAG_WEIGHTS",
     "configure_audit_log",
+    "export_evidence_bundle",
+    "calibrate",
+    "CalibrationResult",
+    "schedule_recalibration",
+    "regression_check",
+    "RegressionReport",
+    "scrub",
+    "register_metric",
+    "EnterpriseFeatureError",
     "setup_nltk",
     "score",
     "verify",

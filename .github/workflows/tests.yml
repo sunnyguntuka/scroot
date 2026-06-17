@@ -30,6 +30,15 @@ jobs:
       - name: Lint
         run: ruff check src/ tests/
 
+      - name: Assert no enterprise/license code in OSS package
+        run: |
+          ! grep -r --include="*.py" -l \
+            -e "^from nacl" -e "^import nacl" \
+            -e "^from scroot_cloud" -e "^import scroot_cloud" \
+            -e "verify_license" \
+            src/scroot/ \
+          || (echo "ERROR: enterprise/license code found in scroot/ package" && exit 1)
+
       - name: CLI smoke test
         run: |
           scroot --help

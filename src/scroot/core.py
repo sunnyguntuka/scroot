@@ -294,8 +294,30 @@ class Auditor:
         }
         if groundedness is not None:
             iqs_scores["groundedness"] = groundedness
+
+        # Custom metrics from register_metric(). Scored after built-ins;
+        # weight=0 records the score in details without affecting IQS.
+        custom_weights: dict[str, float] = {}
+        from .metrics._registry import _CUSTOM_METRICS
+        if _CUSTOM_METRICS:
+            context_list = list(context) if context is not None else None
+            custom_scores: dict[str, float] = {}
+            for name, (fn, weight) in _CUSTOM_METRICS.items():
+                try:
+                    val = float(fn(query, response, context_list))
+                    val = max(0.0, min(1.0, val))
+                    iqs_scores[name] = val
+                    custom_scores[name] = val
+                    if weight > 0:
+                        custom_weights[name] = weight
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("custom metric %r failed: %s", name, exc)
+            if custom_scores:
+                details["custom_metrics"] = custom_scores
+
+        merged_weights = {**(self.weights or {}), **custom_weights} or None
         iqs, effective_weights = compute_iqs_detailed(
-            iqs_scores, weights=self.weights, mode=self.iqs_mode,
+            iqs_scores, weights=merged_weights, mode=self.iqs_mode,
         )
 
         flags = detect_flags(

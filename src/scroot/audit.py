@@ -129,3 +129,26 @@ def emit(event: str, **fields) -> None:
             print(line, file=sys.stderr)
     except OSError:
         pass
+
+
+def export_evidence_bundle(result: object, *, sign: bool = True, retain: bool = True) -> object:
+    """Export a signed, retained evidence bundle for an EntailmentResult.
+
+    The evidence_map DATA lives on ``result`` and is fully OSS.
+    The signed, audit-grade, retained ARTIFACT is scroot Cloud.
+
+    Args:
+        result: An EntailmentResult from Auditor.score().
+        sign: Whether to Ed25519-sign the bundle payload.
+        retain: Whether to write the bundle to the configured retention store.
+
+    Returns:
+        The bundle dict as returned by the registered cloud exporter.
+
+    Raises:
+        EnterpriseFeatureError: When scroot-cloud is not installed.
+    """
+    from ._entitlements import get_enterprise
+
+    impl = get_enterprise("audit.export", "Audit evidence export")
+    return impl.export_evidence_bundle(result, sign=sign, retain=retain)
