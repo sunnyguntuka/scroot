@@ -12,12 +12,9 @@ def ui(
 ) -> None:
     """Launch the local scroot Review Console (OSS, shipped in v0.2.0).
 
-    Single-user, ephemeral, no authentication or sign-off workflow.
-    Inspect scores, evidence_map, numeric-grounding flags, and filter
-    failures. Corrections feed the local feedback loop only.
-
-    This is intentionally NOT a multi-user hosted review queue — assignment,
-    claim/lock, persistent decision history, and sign-off belong to
+    Single-user, ephemeral local viewer. Inspect scores, evidence_map,
+    numeric-grounding flags, and filter failures. Corrections feed the
+    local feedback loop only. For the hosted multi-reviewer queue see
     ``review.queue()`` (scroot Cloud).
 
     Args:
