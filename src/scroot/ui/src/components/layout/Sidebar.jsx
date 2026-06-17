@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Inbox, BarChart2, Download, Settings, Wand2, Zap, ShieldCheck } from 'lucide-react';
 import { api } from '../../api/client';
-import scrootLogo from '../../assets/scroot-logo.png';
+import scrootLogo from '../../assets/scroot-favicon.png';
 
 const NAV = [
   { to: '/queue',     label: 'Inbox',    Icon: Inbox,    badge: 'pending' },
