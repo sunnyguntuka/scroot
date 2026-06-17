@@ -3,38 +3,6 @@ import { NavLink } from 'react-router-dom';
 import { Inbox, BarChart2, Download, Settings, Wand2, Zap, ShieldCheck } from 'lucide-react';
 import { api } from '../../api/client';
 
-// Stacked-lamella logo mark - pure SVG, matches assets/scroot-logo.png
-function ScrootLogo() {
-  return (
-    <svg width="22" height="22" viewBox="162 84 236 200" fill="none" aria-hidden>
-      <defs>
-        <linearGradient id="sidebar-g1" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#c4b5fd" /><stop offset="1" stopColor="#9061f9" />
-        </linearGradient>
-        <linearGradient id="sidebar-g2" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#a78bfa" /><stop offset="1" stopColor="#7c6df9" />
-        </linearGradient>
-        <linearGradient id="sidebar-g3" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#93b6fb" /><stop offset="1" stopColor="#6ea8fb" />
-        </linearGradient>
-        <linearGradient id="sidebar-g4" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#8dd3fd" /><stop offset="1" stopColor="#5ec5fb" />
-        </linearGradient>
-        <linearGradient id="sidebar-g5" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#a5f3fc" /><stop offset="1" stopColor="#67e8f9" />
-        </linearGradient>
-      </defs>
-      <g strokeLinejoin="round" strokeWidth="10">
-        <path d="M280 222 L388 248 L280 274 L172 248 Z" fill="url(#sidebar-g5)" stroke="#67e8f9" />
-        <path d="M280 190 L388 216 L280 242 L172 216 Z" fill="url(#sidebar-g4)" stroke="#5ec5fb" />
-        <path d="M280 158 L388 184 L280 210 L172 184 Z" fill="url(#sidebar-g3)" stroke="#6ea8fb" />
-        <path d="M280 126 L388 152 L280 178 L172 152 Z" fill="url(#sidebar-g2)" stroke="#7c6df9" />
-        <path d="M280  94 L388 120 L280 146 L172 120 Z" fill="url(#sidebar-g1)" stroke="#9061f9" />
-      </g>
-    </svg>
-  );
-}
-
 const NAV = [
   { to: '/queue',     label: 'Inbox',    Icon: Inbox,    badge: 'pending' },
   { to: '/analytics', label: 'Analytics',Icon: BarChart2 },
@@ -66,13 +34,17 @@ export function Sidebar({ pendingCount = 0, collapsed = false, activeGuardrails 
     >
       {/* Logo */}
       <div className={`flex items-center gap-2.5 px-4 py-5 border-b border-indigo-100 shrink-0 ${collapsed ? 'justify-center px-0' : ''}`}>
-        <ScrootLogo />
+        <img
+          src="/scroot-logo.png"
+          alt="scroot"
+          className="h-[34px] w-[34px] rounded-lg object-cover shrink-0"
+        />
         {!collapsed && (
           <div>
             <div className="text-[15px] font-semibold text-indigo-950 leading-none font-sans">
               scroot
             </div>
-            <div className="text-[10px] font-mono-score text-indigo-400 mt-0.5">v0.1.2</div>
+            <div className="text-[10px] font-mono-score text-indigo-400 mt-0.5">v0.2.0</div>
           </div>
         )}
       </div>
