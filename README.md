@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/scroot-github-banner-final.png" alt="scroot - Quality scoring for AI responses. Local. Deterministic. LLM-free." width="100%">
+</p>
+
 <h1 align="center">scroot</h1>
 
 <h3 align="center">LLM-free response quality scoring</h3>
