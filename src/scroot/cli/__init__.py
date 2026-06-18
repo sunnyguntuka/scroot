@@ -56,6 +56,110 @@ try:
         typer.echo(f"Confidence:   {result.confidence:.2f}")
         typer.echo(f"Flags:        {result.flags}")
 
+    @app.command("calibrate")
+    def calibrate_cmd(
+        suite: str = typer.Option(..., "--suite", "-s", help="Path to a JSONL eval results file (one JSON object per line, each with an 'iqs' key and a 'label' key)."),
+        labels: str = typer.Option(
+            None, "--labels", help="Path to a separate JSONL labels file with 'label' keys (True/False). Required when the suite file does not contain 'label' keys."
+        ),
+        output: str = typer.Option(
+            None, "--output", "-o", help="Write calibration result as JSON to this path."
+        ),
+        threshold_step: float = typer.Option(
+            0.05, "--threshold-step", help="Grid search resolution. Default 0.05."
+        ),
+        target_precision: float = typer.Option(
+            None, "--target-precision", help="Select the lowest IQS threshold that achieves at least this precision."
+        ),
+    ):
+        """Calibrate an IQS threshold from a labeled eval run.
+
+        Reads a JSONL file of scored examples (each line: JSON with 'iqs'
+        and 'label' keys) and fits the IQS threshold that maximises F1
+        (or achieves a target precision). Writes the result as JSON.
+
+        Example JSONL line::
+
+            {"iqs": 0.83, "groundedness": 0.9, "completeness": 0.7,
+             "relevance": 0.85, "consistency": 0.95, "confidence": 0.6,
+             "label": true}
+        """
+        import json as json_module
+        from scroot.calibrate import calibrate
+        from scroot.result import EntailmentResult
+
+        try:
+            with open(suite, encoding="utf-8") as f:
+                suite_lines = [line.strip() for line in f if line.strip()]
+        except OSError as e:
+            typer.echo(f"ERROR reading suite file: {e}")
+            raise typer.Exit(1)
+
+        label_list: list[bool] | None = None
+        if labels:
+            try:
+                with open(labels, encoding="utf-8") as f:
+                    label_list = [json_module.loads(line)["label"] for line in f if line.strip()]
+            except (OSError, KeyError, json_module.JSONDecodeError) as e:
+                typer.echo(f"ERROR reading labels file: {e}")
+                raise typer.Exit(1)
+
+        labeled_data: list[tuple[EntailmentResult, bool]] = []
+        for i, line in enumerate(suite_lines):
+            try:
+                obj = json_module.loads(line)
+            except json_module.JSONDecodeError as e:
+                typer.echo(f"ERROR: malformed JSON on line {i+1} of {suite}: {e}")
+                raise typer.Exit(1)
+
+            if label_list is not None:
+                if i >= len(label_list):
+                    typer.echo(f"ERROR: labels file has fewer entries than suite ({i+1} vs {len(suite_lines)})")
+                    raise typer.Exit(1)
+                ok = bool(label_list[i])
+            elif "label" in obj:
+                ok = bool(obj["label"])
+            else:
+                typer.echo(f"ERROR: line {i+1} has no 'label' key and no --labels file provided")
+                raise typer.Exit(1)
+
+            result = EntailmentResult(
+                iqs=float(obj.get("iqs", 0.0)),
+                groundedness=obj.get("groundedness"),
+                completeness=float(obj.get("completeness", 0.0)),
+                relevance=float(obj.get("relevance", 0.0)),
+                consistency=float(obj.get("consistency", 0.0)),
+                confidence=float(obj.get("confidence", 0.0)),
+            )
+            labeled_data.append((result, ok))
+
+        if not labeled_data:
+            typer.echo("ERROR: no labeled examples found")
+            raise typer.Exit(1)
+
+        cal = calibrate(
+            labeled_data,
+            threshold_step=threshold_step,
+            target_precision=target_precision,
+        )
+
+        cal_dict = {
+            "threshold": cal.threshold,
+            "precision": cal.precision,
+            "recall": cal.recall,
+            "f1": cal.f1,
+            "confusion_matrix": cal.confusion_matrix,
+            "n_samples": cal.n_samples,
+            "flag_thresholds": cal.flag_thresholds,
+        }
+
+        if output:
+            with open(output, "w", encoding="utf-8") as f:
+                json_module.dump(cal_dict, f, indent=2)
+            typer.echo(f"Calibration written to {output}")
+        else:
+            typer.echo(json_module.dumps(cal_dict, indent=2))
+
     @app.command("eval")
     def eval_cmd(
         suite: str = typer.Option(..., "--suite", "-s", help="Path to a YAML eval suite."),
@@ -68,10 +172,19 @@ try:
         output: str = typer.Option(
             None, "--output", help="Write a JUnit XML report to this path (for CI)."
         ),
+        baseline: str = typer.Option(
+            None, "--baseline", help="Path to a baseline JSON file from a prior run. Shows per-case IQS deltas."
+        ),
+        save_baseline: str = typer.Option(
+            None, "--save-baseline", help="Persist this run's scores to a JSON file for future --baseline comparisons."
+        ),
+        fail_on_regression: bool = typer.Option(
+            False, "--fail-on-regression", help="Exit non-zero if any case's IQS drops more than 0.02 vs the baseline."
+        ),
     ):
         """Run a YAML-defined quality regression suite (CI/CD quality gate)."""
         import json as json_module
-        from scroot.cli.eval import format_junit_xml, format_report, load_suite, run_suite
+        from scroot.cli.eval import format_junit_xml, format_report, load_baseline, load_suite, run_suite
 
         try:
             suite_obj = load_suite(suite)
@@ -79,7 +192,15 @@ try:
             typer.echo(f"ERROR: {e}")
             raise typer.Exit(1)
 
-        result = run_suite(suite_obj, fail_below=fail_below)
+        baseline_data = load_baseline(baseline) if baseline else None
+        if baseline and baseline_data is None:
+            typer.echo(f"INFO: baseline file {baseline!r} not found — first run, no comparison.")
+
+        result = run_suite(suite_obj, fail_below=fail_below, baseline=baseline_data)
+
+        if save_baseline:
+            result.save_baseline(save_baseline)
+            typer.echo(f"Baseline saved to {save_baseline}")
 
         if output:
             with open(output, "w", encoding="utf-8") as f:
@@ -98,6 +219,8 @@ try:
                         "passed": r.passed,
                         "gate_reason": r.gate_reason,
                         "tags": r.example.tags,
+                        "baseline_iqs": r.baseline_iqs,
+                        "iqs_delta": r.iqs_delta,
                     }
                     for r in result.results
                 ],
@@ -106,6 +229,8 @@ try:
             typer.echo(format_report(suite_obj, result))
 
         if result.failed_count:
+            raise typer.Exit(1)
+        if fail_on_regression and result.has_regression():
             raise typer.Exit(1)
 
     @app.command()

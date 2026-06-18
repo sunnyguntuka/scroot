@@ -65,6 +65,8 @@ def score_confidence(response: str) -> tuple[float, dict]:
     )
 
     total_markers = hedge_count + assert_count
+    applicable = total_markers > 0
+
     if total_markers == 0:
         confidence_score = 0.5
     else:
@@ -78,6 +80,14 @@ def score_confidence(response: str) -> tuple[float, dict]:
         "hedge_markers_found": hedge_count,
         "assertion_markers_found": assert_count,
         "total_words": total_words,
+        "applicable": applicable,
     }
+    if not applicable:
+        details["note"] = (
+            "No hedge or assertion markers found. Score of 0.5 is a "
+            "non-signal, not a quality verdict. For factual, code, or "
+            "technical domains, set weights={'confidence': 0.0} or use "
+            "DEFAULT_WEIGHTS_FACTUAL to exclude this metric from IQS."
+        )
 
     return confidence_score, details

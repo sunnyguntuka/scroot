@@ -6,22 +6,17 @@ SQLite, BigQuery, Snowflake, and any SQLAlchemy-compatible backend.
 Reads responses from a source table, scores them via Auditor, and writes
 results to a result table. The result table is auto-created if absent.
 
-.. warning::
-    SQL injection risk: ``source_table``, ``result_table``, ``column_map``
-    values, and the ``where`` / ``cursor_column`` arguments accepted by
-    ``fetch()``, ``write_result()``, and ``score_incremental()`` are
-    interpolated directly into SQL strings (table/column identifiers
-    cannot be parameterised via SQLAlchemy bind parameters). Only pass
-    values you control - never pass user-supplied input directly as a
-    table name, column name, or WHERE clause. See ``docs/security.md``
-    for details and the planned hardening (allowlist validation,
-    ``dry_run`` mode).
+Table and column names are validated against an allowlist pattern
+(``^[A-Za-z_][A-Za-z0-9_]*$``). Identifiers that fail this pattern raise
+``ValueError`` — not a warning. WHERE clauses and cursor columns are still
+caller-controlled; only pass values you control.
 """
 
 from __future__ import annotations
 
 import json
 import logging
+import re
 import warnings
 from datetime import datetime, timezone
 
@@ -32,13 +27,24 @@ class SecurityWarning(Warning):
     """Warns about a potential security risk in connector configuration."""
 
 
-_SQL_INJECTION_WARNING = (
-    "DatabaseConnector builds SQL using string interpolation for table "
-    "names, column names, and WHERE clauses. These are NOT parameterised. "
-    "Validate/allowlist any externally-influenced table/column names or "
-    "WHERE clauses before passing them to this connector. "
-    "See docs/security.md."
-)
+_IDENTIFIER_RE = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+
+def _validate_identifier(name: str, label: str = "identifier") -> str:
+    """Raise ValueError if ``name`` does not match the SQL identifier allowlist.
+
+    Accepted pattern: ``^[A-Za-z_][A-Za-z0-9_]*$``.
+    Rejects anything with spaces, quotes, semicolons, or special characters
+    that could be used for SQL injection via identifier injection.
+    """
+    if not _IDENTIFIER_RE.match(name):
+        raise ValueError(
+            f"Invalid SQL {label} {name!r}: only letters, digits, and "
+            "underscores are allowed, and the name must start with a letter "
+            "or underscore. Never pass user-supplied input as a table or "
+            "column name."
+        )
+    return name
 
 
 class DatabaseConnector:
@@ -47,16 +53,24 @@ class DatabaseConnector:
     Args:
         connection_string: SQLAlchemy connection string.
             Examples:
-                "postgresql://user:pass@host:5432/db"
-                "mysql+pymysql://user:pass@host/db"
-                "sqlite:///local.db"
-                "bigquery://project/dataset"
+                ``"postgresql://user:pass@host:5432/db"``
+                ``"mysql+pymysql://user:pass@host/db"``
+                ``"sqlite:///local.db"``
+                ``"bigquery://project/dataset"``
         source_table: Name of the table containing LLM responses.
+            Must match ``^[A-Za-z_][A-Za-z0-9_]*$`` — raises ``ValueError``
+            otherwise.
         column_map: Dict mapping entail field names to your column names.
-            Required keys: "query", "response".
-            Optional: "context" (JSON array or NULL), "id" (row identifier).
+            Required keys: ``"query"``, ``"response"``.
+            Optional: ``"context"`` (JSON array or NULL), ``"id"`` (row identifier).
+            All column name values must match the identifier allowlist.
         result_table: Table to write scores to. Auto-created if absent.
+            Must match the identifier allowlist.
         batch_size: Rows fetched and scored per batch. Default 100.
+        dry_run: If ``True``, ``fetch()`` and ``write_result()`` return the
+            generated SQL strings instead of executing them. No I/O is
+            performed. Useful for auditing the generated queries before
+            running against a live database.
     """
 
     def __init__(
@@ -66,6 +80,7 @@ class DatabaseConnector:
         column_map: dict,
         result_table: str = "scroot_scores",
         batch_size: int = 100,
+        dry_run: bool = False,
     ):
         try:
             import sqlalchemy  # noqa: F401
@@ -78,18 +93,27 @@ class DatabaseConnector:
         if "query" not in column_map or "response" not in column_map:
             raise ValueError("column_map must include 'query' and 'response' keys")
 
-        warnings.warn(_SQL_INJECTION_WARNING, SecurityWarning, stacklevel=2)
+        # Validate all identifiers upfront — hard error, not a warning.
+        _validate_identifier(source_table, "source_table")
+        _validate_identifier(result_table, "result_table")
+        for field_name, col_name in column_map.items():
+            _validate_identifier(col_name, f"column_map[{field_name!r}]")
 
         self.connection_string = connection_string
         self.source_table = source_table
         self.column_map = column_map
         self.result_table = result_table
         self.batch_size = batch_size
+        self.dry_run = dry_run
 
-        import sqlalchemy as sa
-        self._engine = sa.create_engine(connection_string)
-        self._metadata = sa.MetaData()
-        self._ensure_result_table()
+        if not dry_run:
+            import sqlalchemy as sa
+            self._engine = sa.create_engine(connection_string)
+            self._metadata = sa.MetaData()
+            self._ensure_result_table()
+        else:
+            self._engine = None
+            self._metadata = None
 
     def _ensure_result_table(self) -> None:
         """Create the result table if it does not exist."""
@@ -116,6 +140,23 @@ class DatabaseConnector:
             table.create(self._engine)
             logger.info("Created result table: %s", self.result_table)
 
+    def _validate_write_schema(self) -> None:
+        """Verify the result table has the expected columns before writing."""
+        import sqlalchemy as sa
+        inspector = sa.inspect(self._engine)
+        if not inspector.has_table(self.result_table):
+            return  # _ensure_result_table will create it
+        existing = {col["name"] for col in inspector.get_columns(self.result_table)}
+        required = {"source_row_id", "scored_at", "iqs", "completeness",
+                    "relevance", "consistency", "confidence", "flags", "details"}
+        missing = required - existing
+        if missing:
+            raise ValueError(
+                f"Result table {self.result_table!r} is missing required columns: "
+                f"{sorted(missing)}. Run the schema migration or drop and re-create "
+                "the table to apply the current schema."
+            )
+
     def _parse_context(self, raw_value) -> list[str] | None:
         """Parse a context column value into a list of strings."""
         if raw_value is None:
@@ -136,19 +177,25 @@ class DatabaseConnector:
         limit: int | None = None,
         where: str | None = None,
         offset: int = 0,
-    ) -> list[dict]:
+        stream: bool = False,
+    ) -> "list[dict] | str":
         """Fetch rows from the source table.
 
         Args:
-            limit: Max rows to fetch. None fetches all rows.
-            where: Optional SQL WHERE clause (without the WHERE keyword).
+            limit: Max rows to fetch. ``None`` fetches all rows.
+            where: Optional SQL WHERE clause (without the ``WHERE`` keyword).
+                This string is injected verbatim — only pass values you
+                control, never user input.
             offset: Row offset for pagination.
+            stream: If ``True``, use a server-side streaming cursor
+                (``stream_results=True``) to avoid loading all rows into
+                memory. Rows are still returned as a list; the streaming
+                happens internally. Recommended for large tables.
 
         Returns:
-            List of dicts with entail field keys plus "_row_id" and "_raw".
+            List of dicts with entail field keys plus ``"_row_id"`` and
+            ``"_raw"``. Returns the SQL string instead when ``dry_run=True``.
         """
-        import sqlalchemy as sa
-
         parts = [f"SELECT * FROM {self.source_table}"]
         if where:
             parts.append(f"WHERE {where}")
@@ -156,19 +203,28 @@ class DatabaseConnector:
             parts.append(f"LIMIT {limit}")
         if offset:
             parts.append(f"OFFSET {offset}")
-
         sql = " ".join(parts)
 
+        if self.dry_run:
+            return sql
+
+        import sqlalchemy as sa
+        connect_kwargs: dict = {}
+        if stream:
+            connect_kwargs["execution_options"] = {"stream_results": True}
+
         with self._engine.connect() as conn:
+            if stream:
+                conn = conn.execution_options(stream_results=True)
             cursor = conn.execute(sa.text(sql))
             col_names = list(cursor.keys())
             rows = []
+            id_col = self.column_map.get("id", "id")
             for row in cursor:
                 raw = dict(zip(col_names, row))
                 mapped: dict = {}
                 for entail_field, db_col in self.column_map.items():
                     mapped[entail_field] = raw.get(db_col)
-                id_col = self.column_map.get("id", "id")
                 mapped["_row_id"] = raw.get(id_col, raw.get("id"))
                 mapped["_raw"] = raw
                 rows.append(mapped)
@@ -180,7 +236,7 @@ class DatabaseConnector:
         result,
         strategy: str | None = None,
         seed: int | None = None,
-    ) -> None:
+    ) -> "None | str":
         """Write a single EntailmentResult to the result table.
 
         Args:
@@ -188,10 +244,11 @@ class DatabaseConnector:
             result: EntailmentResult from Auditor.score().
             strategy: Optional sampling strategy label.
             seed: Optional sampling seed.
-        """
-        import sqlalchemy as sa
 
-        sql = sa.text(
+        Returns:
+            ``None`` normally; the SQL INSERT string when ``dry_run=True``.
+        """
+        insert_sql = (
             f"INSERT INTO {self.result_table} "
             "(source_row_id, scored_at, iqs, groundedness, completeness, "
             "relevance, consistency, confidence, flags, details, strategy, sample_seed) "
@@ -200,8 +257,14 @@ class DatabaseConnector:
             ":relevance, :consistency, :confidence, :flags, :details, :strategy, :seed)"
         )
 
+        if self.dry_run:
+            return insert_sql
+
+        self._validate_write_schema()
+
+        import sqlalchemy as sa
         with self._engine.connect() as conn:
-            conn.execute(sql, {
+            conn.execute(sa.text(insert_sql), {
                 "source_row_id": str(row_id),
                 "scored_at": datetime.now(timezone.utc).replace(tzinfo=None),
                 "iqs": result.iqs,
@@ -216,6 +279,7 @@ class DatabaseConnector:
                 "seed": seed,
             })
             conn.commit()
+        return None
 
     def score_all(self, auditor, where: str | None = None) -> dict:
         """Score all responses in the source table.
@@ -339,10 +403,13 @@ class DatabaseConnector:
         Args:
             auditor: Auditor instance.
             cursor_column: Column in source_table to use as the cursor.
+                Must match the identifier allowlist.
 
         Returns:
             Dict with total_scored, mean_iqs, flag_counts.
         """
+        _validate_identifier(cursor_column, "cursor_column")
+
         import sqlalchemy as sa
 
         id_col = self.column_map.get("id", "id")

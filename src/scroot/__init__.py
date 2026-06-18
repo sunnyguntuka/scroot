@@ -6,7 +6,9 @@ from .core import Auditor
 from .result import EntailmentResult
 from .agents import AgentRegistry, AgentConfig
 from .sampling import SamplingResult, SamplingStrategy, sample_and_score
-from .composite import RAG_WEIGHTS
+from .composite import RAG_WEIGHTS, DEFAULT_WEIGHTS_FACTUAL
+from .flags import DEFAULT_FLAG_THRESHOLDS
+from .metrics.numeric_groundedness import score_numeric_groundedness
 from .context import ContextBuilder, ContextEntry, ContextPayload
 from .evidence import EvidenceEntry, EvidenceMap, build_evidence_map
 from .audit import configure_audit_log, export_evidence_bundle
@@ -37,6 +39,9 @@ __all__ = [
     "SamplingStrategy",
     "sample_and_score",
     "RAG_WEIGHTS",
+    "DEFAULT_WEIGHTS_FACTUAL",
+    "DEFAULT_FLAG_THRESHOLDS",
+    "score_numeric_groundedness",
     "configure_audit_log",
     "export_evidence_bundle",
     "calibrate",
