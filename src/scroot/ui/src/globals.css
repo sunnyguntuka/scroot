@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/* ── Design tokens via CSS variables (matches mockup exactly) ── */
+html, html[data-theme="dark"] {
+  --bg-0: #08080A;
+  --bg-1: #0E0E11;
+  --bg-2: rgba(255,255,255,0.03);
+  --bg-3: rgba(255,255,255,0.05);
+  --bg-glass: rgba(14,14,17,0.72);
+  --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.1);
+  --text-1: #F4F1EC;
+  --text-2: rgba(244,241,236,0.55);
+  --text-3: rgba(244,241,236,0.3);
+  --text-4: rgba(244,241,236,0.15);
+  --accent: #5B8CFF;
+  --accent-dim: rgba(91,140,255,0.1);
+  --accent-glow: rgba(91,140,255,0.25);
+  --green: #34D399;
+  --green-dim: rgba(52,211,153,0.1);
+  --amber: #FBBF24;
+  --amber-dim: rgba(251,191,36,0.1);
+  --red: #F87171;
+  --red-dim: rgba(248,113,113,0.1);
+  --ring-track: rgba(255,255,255,0.04);
+}
+
+html[data-theme="light"] {
+  --bg-0: #F5F5F7;
+  --bg-1: #FFFFFF;
+  --bg-2: rgba(0,0,0,0.03);
+  --bg-3: rgba(0,0,0,0.05);
+  --bg-glass: rgba(245,245,247,0.78);
+  --border: rgba(0,0,0,0.1);
+  --border-hover: rgba(0,0,0,0.18);
+  --text-1: #1D1D1F;
+  --text-2: rgba(29,29,31,0.72);
+  --text-3: rgba(29,29,31,0.48);
+  --text-4: rgba(29,29,31,0.28);
+  --accent: #0071E3;
+  --accent-dim: rgba(0,113,227,0.1);
+  --accent-glow: rgba(0,113,227,0.22);
+  --green: #15803D;
+  --green-dim: rgba(21,128,61,0.1);
+  --amber: #92400E;
+  --amber-dim: rgba(146,64,14,0.1);
+  --red: #B91C1C;
+  --red-dim: rgba(185,28,28,0.1);
+  --ring-track: rgba(0,0,0,0.08);
+}
+
+* { box-sizing: border-box; }
+
+html { font-size: 14px; }
+
+body {
+  background: var(--bg-0);
+  color: var(--text-1);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  height: 100vh;
+  transition: background 0.5s cubic-bezier(0.22,1,0.36,1), color 0.4s cubic-bezier(0.22,1,0.36,1);
+}
+
+#root { height: 100vh; }
+
+/* Smooth theme transitions */
+* {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.4s;
+  transition-timing-function: cubic-bezier(0.22,1,0.36,1);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+html[data-theme="light"] ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); }
+html[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }

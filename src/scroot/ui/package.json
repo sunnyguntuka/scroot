@@ -9,11 +9,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-tooltip": "^1.2.10",
+    "framer-motion": "^12.40.0",
     "lucide-react": "^1.17.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.17.0",
     "recharts": "^3.8.1",
+    "typescript": "^6.0.3",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
