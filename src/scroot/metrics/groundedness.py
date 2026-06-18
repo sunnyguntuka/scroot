@@ -51,6 +51,7 @@ def score_groundedness(
     similarity_fallback: bool = True,
     similarity_threshold: float = 0.82,
     top_k_chunks: int = 3,
+    _capture: "dict | None" = None,
 ) -> tuple[float, dict]:
     """Score how well the response is grounded in the context.
 
@@ -175,6 +176,10 @@ def score_groundedness(
             if best_similarity > 0:
                 result["similarity"] = round(best_similarity, 4)
             claim_results.append(result)
+
+    if _capture is not None:
+        _capture["groundedness_claims"] = [c["claim"] for c in claim_results]
+        _capture["groundedness_scores"] = [c["entailment_prob"] for c in claim_results]
 
     grounded_count = sum(1 for c in claim_results if c["grounded"])
     groundedness_score = grounded_count / len(claims)

@@ -11,6 +11,7 @@ from .flags import DEFAULT_FLAG_THRESHOLDS
 from .metrics.numeric_groundedness import score_numeric_groundedness
 from .context import ContextBuilder, ContextEntry, ContextPayload
 from .evidence import EvidenceEntry, EvidenceMap, build_evidence_map
+from .streaming import PartialScore, StreamingAuditor
 from .audit import configure_audit_log, export_evidence_bundle
 from .calibrate import CalibrationResult, calibrate, schedule_recalibration
 from .drift import RegressionReport, regression_check
@@ -33,6 +34,8 @@ __all__ = [
     "EvidenceEntry",
     "EvidenceMap",
     "build_evidence_map",
+    "PartialScore",
+    "StreamingAuditor",
     "AgentRegistry",
     "AgentConfig",
     "SamplingResult",
