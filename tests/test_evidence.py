@@ -114,6 +114,8 @@ class TestEvidenceEntryAndMap:
                 "no_grounding_found": False,
                 "chunk_source": "retrieval",
                 "chunk_index": 0,
+                "mini_iqs": None,
+                "mini_dims": None,
             }
         ]
 
