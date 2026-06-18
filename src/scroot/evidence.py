@@ -9,8 +9,14 @@ per-sentence detail intended for the Review Console's Evidence Map panel.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+    import numpy as np
+
+from .composite import compute_iqs_detailed
 from .metrics._utils import softmax
 from .metrics.groundedness import (
     LABEL_CONTRADICTION,
@@ -33,6 +39,10 @@ class EvidenceEntry:
     no_grounding_found: bool = False
     chunk_source: "str | None" = None
     chunk_index: "int | None" = None
+    # Per-sentence quality signal (R1). None when inputs are unavailable.
+    # Excludes completeness and confidence (response-level only).
+    mini_iqs: "float | None" = None
+    mini_dims: "dict | None" = None
 
 
 @dataclass
@@ -56,6 +66,98 @@ class EvidenceMap:
             "weakest_sentence": self.weakest_sentence,
             "entries": [vars(e) for e in self.entries],
         }
+
+
+def _per_sentence_consistency(
+    consistency_capture: dict,
+) -> "dict[int, float]":
+    """Aggregate pairwise NLI logits into a per-sentence consistency score.
+
+    Returns a dict mapping consistency_sentence_index → score in [0, 1],
+    where 1.0 means no contradictions involving that sentence.
+    """
+    cons_pairs = consistency_capture.get("consistency_pairs", [])
+    cons_raw = consistency_capture.get("consistency_raw_scores", [])
+    pair_cp: "dict[int, list[float]]" = {}
+    for pair_idx, (i, j) in enumerate(cons_pairs):
+        raw = cons_raw[pair_idx]
+        if isinstance(raw, (tuple, list)) and len(raw) == 2:
+            fwd_p = softmax(raw[0])
+            bwd_p = softmax(raw[1])
+            cp = max(float(fwd_p[LABEL_CONTRADICTION]), float(bwd_p[LABEL_CONTRADICTION]))
+        else:
+            probs = softmax(raw)
+            cp = float(probs[LABEL_CONTRADICTION])
+        pair_cp.setdefault(i, []).append(cp)
+        pair_cp.setdefault(j, []).append(cp)
+    return {idx: 1.0 - (sum(cps) / len(cps)) for idx, cps in pair_cp.items()}
+
+
+def _find_consistency_idx(sentence: str, cons_sentences: "list[str]") -> "int | None":
+    """Find the index of the best-matching consistency sentence."""
+    for idx, cs in enumerate(cons_sentences):
+        if sentence == cs or sentence in cs or cs in sentence:
+            return idx
+    return None
+
+
+def _compute_mini_iqs(
+    entries: "list[EvidenceEntry]",
+    sentences: "list[str]",
+    sentence_embs: "np.ndarray | None",
+    query_embedding: "np.ndarray | None",
+    consistency_capture: "dict | None",
+    sigmoid_midpoint: float,
+    sigmoid_steepness: float,
+) -> None:
+    """Populate mini_iqs and mini_dims on each EvidenceEntry in-place.
+
+    Uses pre-computed embeddings and consistency NLI logits — no extra model
+    calls. Completeness and confidence are response-level and excluded here.
+    """
+    import numpy as np
+
+    # Build per-sentence consistency scores from capture if available
+    per_cons: "dict[int, float]" = {}
+    cons_sentences: "list[str]" = []
+    if consistency_capture:
+        cons_sentences = consistency_capture.get("consistency_sentences", [])
+        per_cons = _per_sentence_consistency(consistency_capture)
+
+    for s_idx, entry in enumerate(entries):
+        dims: "dict[str, float]" = {}
+
+        # groundedness_i from existing entailment_score
+        if entry.entailment_score is not None:
+            dims["groundedness"] = float(entry.entailment_score)
+
+        # relevance_i = sigmoid(cosine(query_emb, sentence_embs[s_idx]))
+        if (
+            query_embedding is not None
+            and sentence_embs is not None
+            and s_idx < len(sentence_embs)
+        ):
+            q = query_embedding
+            s = sentence_embs[s_idx]
+            denom = float(np.linalg.norm(q) * np.linalg.norm(s)) + 1e-8
+            cos_sim = float(np.dot(q, s)) / denom
+            dims["relevance"] = 1.0 / (1.0 + math.exp(
+                -sigmoid_steepness * (cos_sim - sigmoid_midpoint)
+            ))
+
+        # consistency_i from in-process NLI capture via text alignment
+        if cons_sentences:
+            c_idx = _find_consistency_idx(entry.response_sentence, cons_sentences)
+            if c_idx is not None and c_idx in per_cons:
+                dims["consistency"] = per_cons[c_idx]
+
+        if not dims:
+            continue
+
+        # mini_iqs = weighted harmonic mean over present dims
+        mini_iqs, _ = compute_iqs_detailed(dims)
+        entry.mini_iqs = round(mini_iqs, 4)
+        entry.mini_dims = {k: round(v, 4) for k, v in dims.items()}
 
 
 def _no_grounding_map(sentences: "list[str]") -> EvidenceMap:
@@ -90,6 +192,10 @@ def build_evidence_map(
     top_k_chunks: int = 3,
     chunk_sources: "list[str | None] | None" = None,
     atomic_claims: bool = True,
+    query_embedding: "np.ndarray | None" = None,
+    consistency_capture: "dict | None" = None,
+    sigmoid_midpoint: float = 0.5,
+    sigmoid_steepness: float = 10.0,
 ) -> EvidenceMap:
     """Build a sentence-level evidence map for a response against its context.
 
@@ -206,6 +312,14 @@ def build_evidence_map(
                 chunk_index=chosen_idx,
             )
         )
+
+    # Per-sentence mini-IQS (R1). Reuses in-process embeddings and consistency
+    # NLI logits — no additional model calls required.
+    # Completeness and confidence are response-level → excluded per-sentence.
+    _compute_mini_iqs(
+        entries, sentences, sentence_embs, query_embedding,
+        consistency_capture, sigmoid_midpoint, sigmoid_steepness,
+    )
 
     supported_count = sum(1 for e in entries if e.supported)
     contradiction_count = sum(1 for e in entries if e.contradiction_detected)

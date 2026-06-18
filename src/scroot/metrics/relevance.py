@@ -16,6 +16,7 @@ def score_relevance(
     device: str = "cpu",
     midpoint: float = 0.5,
     steepness: float = 10.0,
+    query_embedding: "np.ndarray | None" = None,
 ) -> tuple[float, dict]:
     """Score the semantic relevance of response to query.
 
@@ -45,7 +46,7 @@ def score_relevance(
 
     model = get_embedding_model(embedding_model, device=device)
 
-    q_emb = model.encode(query, convert_to_numpy=True)
+    q_emb = query_embedding if query_embedding is not None else model.encode(query, convert_to_numpy=True)
     r_emb = model.encode(response, convert_to_numpy=True)
 
     raw_similarity = float(np.dot(q_emb, r_emb) / (

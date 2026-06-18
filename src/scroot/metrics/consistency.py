@@ -47,6 +47,7 @@ def score_consistency(
     bidirectional: bool = True,
     pair_sample_size: int | None = None,
     pair_sample_seed: int | None = 42,
+    _capture: "dict | None" = None,
 ) -> tuple[float, dict]:
     """Score the internal consistency of a response.
 
@@ -127,6 +128,14 @@ def score_consistency(
     else:
         fwd_scores = model.predict([(sentences[i], sentences[j]) for i, j in pairs])
         bwd_scores = None
+
+    if _capture is not None:
+        _capture["consistency_sentences"] = sentences
+        _capture["consistency_pairs"] = list(pairs)
+        _capture["consistency_raw_scores"] = (
+            list(zip(list(fwd_scores), list(bwd_scores))) if bwd_scores is not None
+            else list(fwd_scores)
+        )
 
     contradictions = []
     for idx, (i, j) in enumerate(pairs):

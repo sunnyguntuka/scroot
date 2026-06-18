@@ -22,6 +22,7 @@ from .metrics.confidence import score_confidence
 from .metrics.numeric_groundedness import score_numeric_groundedness
 from .composite import DEFAULT_WEIGHTS, compute_iqs_detailed
 from .flags import detect_flags
+from .models import get_embedding_model
 
 logger = logging.getLogger(__name__)
 
@@ -275,19 +276,12 @@ class Auditor:
                     stacklevel=2,
                 )
 
-        evidence_map = None
-        if context is not None and self.compute_evidence_map:
-            evidence_map = build_evidence_map(
-                response, context,
-                nli_model=self.nli_model,
-                embedding_model=self.embedding_model,
-                device=self.device,
-                entailment_threshold=self.evidence_entailment_threshold,
-                contradiction_threshold=self.evidence_contradiction_threshold,
-                top_k_chunks=self.top_k_chunks,
-                chunk_sources=chunk_sources,
-                atomic_claims=self.atomic_claims,
-            )
+        # Pre-compute query embedding once; reused by score_relevance and
+        # build_evidence_map (per-sentence relevance) — zero extra encode calls.
+        _query_emb = None
+        if query.strip():
+            _emb_model = get_embedding_model(self.embedding_model, device=self.device)
+            _query_emb = _emb_model.encode(query, convert_to_numpy=True)
 
         completeness, c_details = score_completeness(
             query, response,
@@ -305,10 +299,13 @@ class Auditor:
             device=self.device,
             midpoint=self.relevance_sigmoid_midpoint,
             steepness=self.relevance_sigmoid_steepness,
+            query_embedding=_query_emb,
         )
         details["relevance"] = r_details
         _elapsed("relevance")
 
+        # _cap collects consistency NLI logits for per-sentence mini-IQS.
+        _cap: dict = {}
         consistency, cons_details = score_consistency(
             response,
             nli_model=self.nli_model,
@@ -316,9 +313,28 @@ class Auditor:
             contradiction_threshold=self.contradiction_threshold,
             max_sentences=self.max_sentences,
             bidirectional=self.bidirectional_consistency,
+            _capture=_cap,
         )
         details["consistency"] = cons_details
         _elapsed("consistency")
+
+        evidence_map = None
+        if context is not None and self.compute_evidence_map:
+            evidence_map = build_evidence_map(
+                response, context,
+                nli_model=self.nli_model,
+                embedding_model=self.embedding_model,
+                device=self.device,
+                entailment_threshold=self.evidence_entailment_threshold,
+                contradiction_threshold=self.evidence_contradiction_threshold,
+                top_k_chunks=self.top_k_chunks,
+                chunk_sources=chunk_sources,
+                atomic_claims=self.atomic_claims,
+                query_embedding=_query_emb,
+                consistency_capture=_cap if _cap else None,
+                sigmoid_midpoint=self.relevance_sigmoid_midpoint,
+                sigmoid_steepness=self.relevance_sigmoid_steepness,
+            )
 
         confidence, conf_details = score_confidence(response)
         details["confidence"] = conf_details
@@ -359,15 +375,13 @@ class Auditor:
         )
 
         if context is not None and self.compute_numeric_groundedness:
-            numeric_score, numeric_details = score_numeric_groundedness(
+            _, numeric_details = score_numeric_groundedness(
                 response, context,
                 nli_model=self.nli_model if self.nli_completeness else None,
                 device=self.device,
             )
             details["numeric_groundedness"] = numeric_details
             _elapsed("numeric_groundedness")
-        else:
-            numeric_score = None
 
         flags = detect_flags(
             groundedness, completeness, relevance,
