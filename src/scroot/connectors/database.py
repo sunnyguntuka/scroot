@@ -17,7 +17,6 @@ from __future__ import annotations
 import json
 import logging
 import re
-import warnings
 from datetime import datetime, timezone
 
 logger = logging.getLogger("scroot.connectors")

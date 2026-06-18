@@ -372,8 +372,6 @@ class Auditor:
             )
             details["numeric_groundedness"] = numeric_details
             _elapsed("numeric_groundedness")
-        else:
-            numeric_score = None
 
         flags = detect_flags(
             groundedness, completeness, relevance,
