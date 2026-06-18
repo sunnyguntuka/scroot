@@ -1,0 +1,117 @@
+import { Link, useLocation } from 'react-router-dom'
+import * as Tooltip from '@radix-ui/react-tooltip'
+
+// U+FE0E text variation selector after each glyph — forces text rendering, no color emoji
+const NAV_ITEMS = [
+  { to: '/', label: 'Overview', glyph: '◫︎', end: true },
+  { to: '/inbox', label: 'Inbox', glyph: '✉︎' },
+  { to: '/evidence', label: 'Evidence', glyph: '◉︎' },
+  { to: '/scores', label: 'Scores', glyph: '☰︎' },
+  { to: '/calibration', label: 'Calibration', glyph: '⊚︎' },
+  { to: '/flags', label: 'Flags', glyph: '⚑︎' },
+  { to: '/pipeline', label: 'Pipeline', glyph: '⚡︎' },
+  { to: '/export', label: 'Export', glyph: '⤓︎' },
+]
+
+const SETTINGS = { to: '/settings', label: 'Settings', glyph: '⚙︎' }
+
+function IconMark() {
+  return (
+    <svg width="32" height="32" viewBox="0 0 96 96" fill="none" aria-hidden="true">
+      <g fill="var(--accent)" fillRule="evenodd">
+        <path d="M8.4,32.8 L8.0,33.4 L8.0,34.8 L8.4,35.5 L11.9,37.2 L13.3,38.7 L14.4,40.6 L14.9,42.8 L14.9,49.0 L15.5,53.0 L17.8,57.5 L21.1,60.8 L23.5,62.3 L26.1,63.2 L29.0,63.7 L32.2,63.6 L35.6,62.7 L37.8,61.7 L40.8,59.4 L42.6,57.3 L44.3,54.2 L45.3,51.1 L45.6,48.8 L45.4,45.2 L44.7,42.7 L43.1,39.3 L41.4,37.2 L38.7,34.8 L35.5,33.2 L31.4,32.3 L9.2,32.3 Z M16.0,36.0 L32.0,36.0 L35.2,37.0 L37.6,38.6 L39.1,40.1 L40.3,41.7 L41.3,43.8 L41.9,46.5 L41.9,49.4 L41.5,51.3 L40.3,54.2 L39.1,55.8 L37.6,57.3 L36.0,58.5 L33.2,59.7 L30.9,60.0 L29.2,60.0 L26.1,59.4 L24.6,58.7 L22.3,57.1 L20.0,54.4 L18.8,51.3 L18.6,43.4 L18.3,41.3 L17.5,38.9 L16.0,36.4 Z" />
+        <path d="M87.2,32.5 L64.7,32.3 L61.0,33.1 L57.0,35.2 L54.7,37.3 L52.9,39.6 L51.5,42.6 L50.6,46.3 L50.6,49.5 L51.2,52.4 L53.7,57.4 L56.0,60.0 L58.4,61.7 L61.4,63.0 L63.4,63.5 L67.3,63.7 L69.2,63.4 L72.0,62.6 L74.6,61.1 L77.9,58.0 L80.0,54.5 L81.0,50.7 L81.0,44.1 L81.3,41.4 L82.3,39.2 L84.0,37.4 L87.8,35.3 L88.0,33.4 Z M79.8,36.0 L79.9,36.5 L78.7,38.3 L77.6,41.7 L77.4,50.4 L77.0,52.1 L75.4,55.3 L73.3,57.5 L71.5,58.7 L69.1,59.7 L66.8,60.0 L64.4,60.0 L62.4,59.5 L60.2,58.5 L58.6,57.3 L57.0,55.7 L55.8,54.1 L54.6,51.1 L54.2,47.2 L54.6,44.9 L55.4,42.6 L56.7,40.6 L58.6,38.6 L61.5,36.8 L64.3,36.0 Z" />
+      </g>
+      <g fill="var(--accent)">
+        <circle cx="66.1" cy="47.8" r="4.1" />
+        <circle cx="30.1" cy="47.8" r="4.1" />
+      </g>
+    </svg>
+  )
+}
+
+interface NavItemProps {
+  to: string
+  label: string
+  glyph: string
+  end?: boolean
+}
+
+function NavItem({ to, label, glyph, end }: NavItemProps) {
+  const { pathname } = useLocation()
+  const isActive = end ? pathname === to : pathname === to || pathname.startsWith(to + '/')
+
+  return (
+    <Tooltip.Provider delayDuration={200}>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <Link
+            to={to}
+            aria-label={label}
+            className={`sb-item${isActive ? ' active' : ''}`}
+          >
+            {glyph}
+          </Link>
+        </Tooltip.Trigger>
+        <Tooltip.Portal>
+          <Tooltip.Content
+            side="right"
+            sideOffset={10}
+            style={{
+              background: '#1C1C21',
+              color: 'var(--text-1)',
+              fontSize: 11,
+              fontWeight: 500,
+              padding: '5px 12px',
+              borderRadius: 6,
+              whiteSpace: 'nowrap',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+              zIndex: 100,
+            }}
+          >
+            {label}
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+  )
+}
+
+export function Sidebar() {
+  return (
+    <aside
+      style={{
+        background: 'var(--bg-1)',
+        borderRight: '0.5px solid var(--border)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        padding: '18px 0',
+        gap: 2,
+        zIndex: 10,
+      }}
+    >
+      <div
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 24,
+          background: 'var(--bg-2)',
+        }}
+      >
+        <IconMark />
+      </div>
+
+      {NAV_ITEMS.map((item) => (
+        <NavItem key={item.to} {...item} />
+      ))}
+
+      <div style={{ flex: 1 }} />
+      <NavItem {...SETTINGS} />
+    </aside>
+  )
+}

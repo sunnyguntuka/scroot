@@ -26,7 +26,7 @@ def main():
     from .server import create_app
     app = create_app(store_path=args.store, hosted=args.hosted)
 
-    print("\n  ◆ SCROOT Review Console")
+    print("\n  ** SCROOT Review Console")
     print(f"  Store: {args.store}")
     print(f"  URL:   http://{args.host}:{args.port}\n")
 
