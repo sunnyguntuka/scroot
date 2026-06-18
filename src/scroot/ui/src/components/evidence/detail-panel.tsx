@@ -54,7 +54,7 @@ export function DetailPanel({ sentence, index, dims, note, numericClaims }: Deta
         }}
       >
         {dims.map((d) => (
-          <div key={d.label} style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: 8 }}>
+          <div key={d.label} style={{ padding: '12px 14px', background: 'var(--bg-3)', borderRadius: 8 }}>
             <div style={{ fontSize: 10, color: 'var(--text-3)', marginBottom: 5 }}>{d.label}</div>
             <div style={{ fontFamily: 'var(--mono)', fontSize: 18, fontWeight: 500, color: d.color }}>
               {d.value.toFixed(2)}

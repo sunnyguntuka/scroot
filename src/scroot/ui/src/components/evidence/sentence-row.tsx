@@ -60,7 +60,7 @@ export function SentenceRow({ entry, index }: SentenceRowProps) {
 
   return (
     <div
-      className="sent"
+      className={`sent${tone === 'hi' ? ' sent-hi' : tone === 'mid' ? ' sent-mid' : ''}`}
       style={{
         display: 'grid',
         gridTemplateColumns: '1fr 50px 280px',
@@ -75,7 +75,7 @@ export function SentenceRow({ entry, index }: SentenceRowProps) {
         outline: tone === 'mid' ? '1px solid rgba(251,191,36,0.12)' : undefined,
       }}
     >
-      <div style={{ fontSize: 13, lineHeight: 1.75, color: 'rgba(244,241,236,0.75)' }}>
+      <div style={{ fontSize: 13, lineHeight: 1.75, color: 'var(--text-1)' }}>
         <span style={{ color: 'var(--text-3)', marginRight: 6, fontFamily: 'var(--mono)', fontSize: 11 }}>
           {CIRCLED[index] ?? index + 1}
         </span>

@@ -10,9 +10,9 @@ html, html[data-theme="dark"] {
   --border: rgba(255,255,255,0.06);
   --border-hover: rgba(255,255,255,0.1);
   --text-1: #F4F1EC;
-  --text-2: rgba(244,241,236,0.55);
-  --text-3: rgba(244,241,236,0.3);
-  --text-4: rgba(244,241,236,0.15);
+  --text-2: rgba(244,241,236,0.68);
+  --text-3: rgba(244,241,236,0.42);
+  --text-4: rgba(244,241,236,0.26);
   --accent: #5B8CFF;
   --accent-dim: rgba(91,140,255,0.1);
   --accent-glow: rgba(91,140,255,0.25);
@@ -143,8 +143,12 @@ body {
 }
 html[data-theme="light"] .hm-cell { opacity: 0.8 !important; }
 
+/* ── Evidence sentence row: light theme tint boost ── */
+html[data-theme="light"] .sent-hi { background: rgba(52,211,153,0.06) !important; }
+html[data-theme="light"] .sent-mid { background: rgba(251,191,36,0.06) !important; }
+
 /* ── Sentence row hover ── */
-.sent:hover { background: rgba(255,255,255,0.02) !important; }
+.sent:hover { background: var(--bg-3) !important; }
 
 /* ── Form: select ── */
 .sel:hover { border-color: var(--border-hover); }
