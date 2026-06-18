@@ -22,6 +22,8 @@ from .metrics.confidence import score_confidence
 from .metrics.numeric_groundedness import score_numeric_groundedness
 from .composite import DEFAULT_WEIGHTS, compute_iqs_detailed
 from .flags import detect_flags
+from .models import get_embedding_model
+from .text_utils import split_sentences
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +121,7 @@ class Auditor:
         relevance_sigmoid_steepness: float = 10.0,
         compute_numeric_groundedness: bool = True,
         flag_thresholds: dict | None = None,
+        keep_intermediates: bool = False,
     ):
         self.nli_model = nli_model
         self.embedding_model = embedding_model
@@ -147,6 +150,7 @@ class Auditor:
         self.relevance_sigmoid_steepness = relevance_sigmoid_steepness
         self.compute_numeric_groundedness = compute_numeric_groundedness
         self.flag_thresholds = flag_thresholds
+        self.keep_intermediates = keep_intermediates
 
     def score(
         self,
@@ -309,6 +313,7 @@ class Auditor:
         details["relevance"] = r_details
         _elapsed("relevance")
 
+        _cap: dict | None = {} if self.keep_intermediates else None
         consistency, cons_details = score_consistency(
             response,
             nli_model=self.nli_model,
@@ -316,6 +321,7 @@ class Auditor:
             contradiction_threshold=self.contradiction_threshold,
             max_sentences=self.max_sentences,
             bidirectional=self.bidirectional_consistency,
+            _capture=_cap,
         )
         details["consistency"] = cons_details
         _elapsed("consistency")
@@ -375,6 +381,22 @@ class Auditor:
             thresholds=self.flag_thresholds,
         )
 
+        intermediates: dict | None = None
+        if self.keep_intermediates:
+            import numpy as np
+            emb_model = get_embedding_model(self.embedding_model, device=self.device)
+            response_sentences = split_sentences(response)
+            query_embedding = emb_model.encode(query, convert_to_numpy=True)
+            response_embeddings = emb_model.encode(response_sentences, convert_to_numpy=True) if response_sentences else np.empty((0,))
+            intermediates = {
+                "query_embedding": query_embedding,
+                "response_embeddings": response_embeddings,
+                "response_sentences": response_sentences,
+            }
+            if _cap:
+                intermediates.update(_cap)
+            _elapsed("intermediates")
+
         return EntailmentResult(
             groundedness=groundedness,
             completeness=completeness,
@@ -388,6 +410,7 @@ class Auditor:
             effective_weights=effective_weights,
             context_used=(groundedness is not None),
             iqs_metric_count=len(effective_weights),
+            intermediates=intermediates,
         )
 
     def score_batch(
