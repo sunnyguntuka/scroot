@@ -6,6 +6,8 @@ Loads models once, runs all metrics, computes IQS, returns result.
 from __future__ import annotations
 
 import logging
+import os
+import time
 import warnings
 
 from .result import EntailmentResult
@@ -17,8 +19,11 @@ from .metrics.completeness import score_completeness
 from .metrics.relevance import score_relevance
 from .metrics.consistency import score_consistency
 from .metrics.confidence import score_confidence
+from .metrics.numeric_groundedness import score_numeric_groundedness
 from .composite import DEFAULT_WEIGHTS, compute_iqs_detailed
 from .flags import detect_flags
+from .models import get_embedding_model
+from .text_utils import split_sentences
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +77,19 @@ class Auditor:
         evidence_contradiction_threshold: Minimum contradiction probability
             for a sentence to be marked "contradicted" in the evidence map.
             Default 0.30.
+        relevance_sigmoid_midpoint: Cosine similarity value that maps to 0.5
+            relevance. Default 0.5. Override for retrievers with higher
+            baseline similarity (e.g. 0.7 for dense retrievers on same-domain
+            corpora).
+        relevance_sigmoid_steepness: Controls how sharply the relevance
+            sigmoid rises. Default 10.0. Higher values → sharper transition.
+        compute_numeric_groundedness: If True (default) and context is
+            provided, run the numeric grounding verifier and expose the
+            per-claim breakdown in ``result.details["numeric_groundedness"]``.
+        flag_thresholds: Per-flag threshold overrides. Keys are flag names
+            (``"hallucination_risk"``, ``"off_topic"``, ``"self_contradictory"``,
+            ``"incomplete"``, ``"ungrounded"``). Unset keys fall back to
+            built-in defaults.
     """
 
     def __init__(
@@ -99,6 +117,11 @@ class Auditor:
         compute_evidence_map: bool = True,
         evidence_entailment_threshold: float = 0.70,
         evidence_contradiction_threshold: float = 0.30,
+        relevance_sigmoid_midpoint: float = 0.5,
+        relevance_sigmoid_steepness: float = 10.0,
+        compute_numeric_groundedness: bool = True,
+        flag_thresholds: dict | None = None,
+        keep_intermediates: bool = False,
     ):
         self.nli_model = nli_model
         self.embedding_model = embedding_model
@@ -123,6 +146,11 @@ class Auditor:
         self.compute_evidence_map = compute_evidence_map
         self.evidence_entailment_threshold = evidence_entailment_threshold
         self.evidence_contradiction_threshold = evidence_contradiction_threshold
+        self.relevance_sigmoid_midpoint = relevance_sigmoid_midpoint
+        self.relevance_sigmoid_steepness = relevance_sigmoid_steepness
+        self.compute_numeric_groundedness = compute_numeric_groundedness
+        self.flag_thresholds = flag_thresholds
+        self.keep_intermediates = keep_intermediates
 
     def score(
         self,
@@ -195,6 +223,13 @@ class Auditor:
                 context = None
                 chunk_sources = None
 
+        _debug_timing = os.environ.get("SCROOT_DEBUG_TIMING") == "1"
+        _t0 = time.perf_counter() if _debug_timing else 0.0
+
+        def _elapsed(label: str) -> None:
+            if _debug_timing:
+                logger.debug("[timing] %s: %.3fs", label, time.perf_counter() - _t0)
+
         details = {}
         if context_audit is not None:
             details["context"] = context_audit
@@ -213,6 +248,7 @@ class Auditor:
                     top_k_chunks=self.top_k_chunks,
                 )
                 details["groundedness"] = g_details
+                _elapsed("groundedness")
             except Exception as e:
                 # Context was provided but groundedness scoring failed
                 # unexpectedly. Degrade gracefully: exclude groundedness from
@@ -265,14 +301,19 @@ class Auditor:
             coverage_threshold=self.coverage_threshold,
         )
         details["completeness"] = c_details
+        _elapsed("completeness")
 
         relevance, r_details = score_relevance(
             query, response,
             embedding_model=self.embedding_model,
             device=self.device,
+            midpoint=self.relevance_sigmoid_midpoint,
+            steepness=self.relevance_sigmoid_steepness,
         )
         details["relevance"] = r_details
+        _elapsed("relevance")
 
+        _cap: dict | None = {} if self.keep_intermediates else None
         consistency, cons_details = score_consistency(
             response,
             nli_model=self.nli_model,
@@ -280,11 +321,14 @@ class Auditor:
             contradiction_threshold=self.contradiction_threshold,
             max_sentences=self.max_sentences,
             bidirectional=self.bidirectional_consistency,
+            _capture=_cap,
         )
         details["consistency"] = cons_details
+        _elapsed("consistency")
 
         confidence, conf_details = score_confidence(response)
         details["confidence"] = conf_details
+        _elapsed("confidence")
 
         iqs_scores: dict = {
             "completeness": completeness,
@@ -320,10 +364,36 @@ class Auditor:
             iqs_scores, weights=merged_weights, mode=self.iqs_mode,
         )
 
+        if context is not None and self.compute_numeric_groundedness:
+            numeric_score, numeric_details = score_numeric_groundedness(
+                response, context,
+                nli_model=self.nli_model if self.nli_completeness else None,
+                device=self.device,
+            )
+            details["numeric_groundedness"] = numeric_details
+            _elapsed("numeric_groundedness")
+
         flags = detect_flags(
             groundedness, completeness, relevance,
             consistency, confidence,
+            thresholds=self.flag_thresholds,
         )
+
+        intermediates: dict | None = None
+        if self.keep_intermediates:
+            import numpy as np
+            emb_model = get_embedding_model(self.embedding_model, device=self.device)
+            response_sentences = split_sentences(response)
+            query_embedding = emb_model.encode(query, convert_to_numpy=True)
+            response_embeddings = emb_model.encode(response_sentences, convert_to_numpy=True) if response_sentences else np.empty((0,))
+            intermediates = {
+                "query_embedding": query_embedding,
+                "response_embeddings": response_embeddings,
+                "response_sentences": response_sentences,
+            }
+            if _cap:
+                intermediates.update(_cap)
+            _elapsed("intermediates")
 
         return EntailmentResult(
             groundedness=groundedness,
@@ -338,6 +408,7 @@ class Auditor:
             effective_weights=effective_weights,
             context_used=(groundedness is not None),
             iqs_metric_count=len(effective_weights),
+            intermediates=intermediates,
         )
 
     def score_batch(

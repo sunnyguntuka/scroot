@@ -4,10 +4,16 @@ Loads a suite of (query, response, context) examples with expected IQS/
 groundedness floors, scores each with scroot, and reports pass/fail using
 EntailmentResult.passes_gate() / gate_reason(). Intended as a CI/CD quality
 gate - exits non-zero if any example fails its gate.
+
+Baseline comparison: pass ``--baseline last_run.json`` to compare the current
+run against a prior run persisted with ``--save-baseline``. Per-case IQS
+deltas are shown and ``--fail-on-regression`` exits non-zero when any case
+regresses beyond the tolerance.
 """
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from xml.etree import ElementTree as ET
 
@@ -43,6 +49,14 @@ class ExampleResult:
     iqs: float
     passed: bool
     gate_reason: "str | None"
+    baseline_iqs: "float | None" = None
+
+    @property
+    def iqs_delta(self) -> "float | None":
+        """IQS change vs baseline (negative = regression)."""
+        if self.baseline_iqs is None:
+            return None
+        return round(self.iqs - self.baseline_iqs, 4)
 
 
 @dataclass
@@ -64,6 +78,44 @@ class EvalRunResult:
         if not self.results:
             return 0.0
         return sum(r.iqs for r in self.results) / len(self.results)
+
+    def has_regression(self, tolerance: float = 0.02) -> bool:
+        """Return True if any case's IQS dropped more than ``tolerance`` vs baseline."""
+        for r in self.results:
+            delta = r.iqs_delta
+            if delta is not None and delta < -tolerance:
+                return True
+        return False
+
+    def to_baseline(self) -> dict:
+        """Serialise this run for use as a future baseline file."""
+        return {
+            "avg_iqs": round(self.avg_iqs, 4),
+            "cases": [
+                {
+                    "query": r.example.query[:200],
+                    "iqs": round(r.iqs, 4),
+                }
+                for r in self.results
+            ],
+        }
+
+    def save_baseline(self, path: str) -> None:
+        """Write this run's per-case scores to a JSON file for future comparison."""
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(self.to_baseline(), f, indent=2)
+
+
+def load_baseline(path: str) -> "dict | None":
+    """Load a baseline JSON file previously written by ``save_baseline``.
+
+    Returns ``None`` if the file does not exist (first-run behaviour).
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
 
 
 def _import_yaml():
@@ -138,20 +190,28 @@ def load_suite(path: str) -> EvalSuite:
     )
 
 
-def run_suite(suite: EvalSuite, fail_below: "float | None" = None) -> EvalRunResult:
+def run_suite(
+    suite: EvalSuite,
+    fail_below: "float | None" = None,
+    baseline: "dict | None" = None,
+) -> EvalRunResult:
     """Score every example in a suite and evaluate its quality gate.
 
     Args:
         suite: The eval suite to run.
         fail_below: Optional CLI override for the IQS gate threshold,
-            applied to examples that don't set their own
-            ``expected_iqs_min``.
+            applied to examples that don't set their own ``expected_iqs_min``.
+        baseline: Optional baseline dict (from ``load_baseline()``) to compare
+            against. When provided, each ``ExampleResult`` gets a
+            ``baseline_iqs`` field showing the prior run's score.
 
     Returns:
         EvalRunResult with per-example outcomes and aggregate stats.
     """
+    baseline_cases: list[dict] = (baseline or {}).get("cases", [])
+
     results = []
-    for example in suite.examples:
+    for i, example in enumerate(suite.examples):
         result = score(query=example.query, response=example.response, context=example.context)
         threshold = (
             example.expected_iqs_min
@@ -166,11 +226,17 @@ def run_suite(suite: EvalSuite, fail_below: "float | None" = None) -> EvalRunRes
             threshold=threshold,
             require_groundedness=suite.fail_below_groundedness,
         )
+        # Match baseline by index (order is stable within a suite)
+        base_iqs: float | None = None
+        if i < len(baseline_cases):
+            base_iqs = baseline_cases[i].get("iqs")
+
         results.append(ExampleResult(
             example=example,
             iqs=result.iqs,
             passed=reason is None,
             gate_reason=reason,
+            baseline_iqs=base_iqs,
         ))
 
     return EvalRunResult(results=results)
@@ -178,22 +244,35 @@ def run_suite(suite: EvalSuite, fail_below: "float | None" = None) -> EvalRunRes
 
 def format_report(suite: EvalSuite, run_result: EvalRunResult) -> str:
     """Format a plain-text report of an eval run for CLI output."""
+    has_baseline = any(r.baseline_iqs is not None for r in run_result.results)
     lines = [f"Eval suite: {suite.name}", ""]
 
     for i, result in enumerate(run_result.results, start=1):
-        if result.passed:
+        delta = result.iqs_delta
+        regression = delta is not None and delta < -0.02
+        if result.passed and not regression:
             continue
         tags = f" [{', '.join(result.example.tags)}]" if result.example.tags else ""
-        lines.append(f"FAIL #{i}{tags}")
+        status = "FAIL" if not result.passed else "REGRESSED"
+        lines.append(f"{status} #{i}{tags}")
         lines.append(f"  Query: {result.example.query}")
-        lines.append(f"  IQS:   {result.iqs:.2f}")
-        lines.append(f"  Reason: {result.gate_reason}")
+        if delta is not None:
+            arrow = "↓" if delta < 0 else "↑"
+            lines.append(f"  IQS:   {result.iqs:.2f}  ({arrow}{abs(delta):.3f} vs baseline {result.baseline_iqs:.2f})")
+        else:
+            lines.append(f"  IQS:   {result.iqs:.2f}")
+        if result.gate_reason:
+            lines.append(f"  Reason: {result.gate_reason}")
         lines.append("")
 
-    lines.append(
+    summary = (
         f"Summary: {run_result.passed_count}/{len(run_result.results)} passed "
         f"- avg IQS {run_result.avg_iqs:.2f}"
     )
+    if has_baseline:
+        regressions = [r for r in run_result.results if r.iqs_delta is not None and r.iqs_delta < -0.02]
+        summary += f" - {len(regressions)} regression(s) vs baseline"
+    lines.append(summary)
     return "\n".join(lines)
 
 

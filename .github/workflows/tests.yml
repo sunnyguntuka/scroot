@@ -196,6 +196,38 @@ jobs:
           pip install pip-licenses
           pip-licenses --fail-on="GNU General Public License (GPL);GNU Lesser General Public License v2 (LGPLv2);GNU Lesser General Public License v3 (LGPLv3);GNU Affero General Public License v3 (AGPLv3)"
 
+  dashboard-freshness:
+    name: Dashboard SPA build freshness
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: src/scroot/ui/package-lock.json
+
+      - name: Install dashboard dependencies
+        working-directory: src/scroot/ui
+        run: npm ci
+
+      - name: Rebuild dashboard SPA
+        working-directory: src/scroot/ui
+        run: npm run build
+
+      - name: Assert committed dist/ matches fresh build
+        run: |
+          if ! git diff --exit-code -- src/scroot/ui/dist/; then
+            echo ""
+            echo "ERROR: committed src/scroot/ui/dist/ is stale."
+            echo "Run 'npm run build' in src/scroot/ui/ and commit the result."
+            exit 1
+          fi
+          echo "OK: dist/ is up to date with source."
+
   secrets-scan:
     name: Secrets scan (Gitleaks)
     runs-on: ubuntu-latest

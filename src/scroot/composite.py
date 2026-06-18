@@ -53,6 +53,20 @@ RAG_WEIGHTS = {
     "confidence": 0.05,
 }
 
+# Factual/code/legal/technical preset: confidence excluded (weight 0.0).
+# The confidence metric counts hedge/assertion markers — on declarative or
+# code responses with no hedging language it always returns 0.5 (no signal).
+# Use this preset for domains where responses are expected to be assertive
+# and the 0.5 non-signal would dilute IQS. Redistribution is proportional:
+# groundedness 0.37, completeness 0.26, relevance 0.21, consistency 0.16.
+DEFAULT_WEIGHTS_FACTUAL = {
+    "groundedness": 0.35,
+    "completeness": 0.25,
+    "relevance": 0.20,
+    "consistency": 0.15,
+    "confidence": 0.0,
+}
+
 
 def compute_iqs(
     groundedness: float | None,

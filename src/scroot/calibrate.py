@@ -23,6 +23,10 @@ class CalibrationResult:
         f1: F1 score at the chosen threshold.
         confusion_matrix: Counts at the chosen threshold (tp, fp, tn, fn).
         n_samples: Number of labeled samples used.
+        flag_thresholds: Suggested per-flag thresholds derived from the
+            calibration data. Pass to ``Auditor(flag_thresholds=...)`` to
+            tighten or loosen flag firing on your domain.
+            ``None`` when no ``EntailmentResult`` scores are available.
     """
 
     threshold: float
@@ -32,6 +36,7 @@ class CalibrationResult:
     f1: float
     confusion_matrix: dict[str, int]
     n_samples: int
+    flag_thresholds: "dict[str, float] | None" = None
 
 
 def calibrate(
@@ -107,6 +112,8 @@ def calibrate(
     rec = tp / (tp + fn) if (tp + fn) else 0.0
     f1 = best["f1"]
 
+    flag_thresholds = _derive_flag_thresholds(labeled_data)
+
     return CalibrationResult(
         threshold=best["threshold"],
         weights=None,
@@ -115,7 +122,93 @@ def calibrate(
         f1=round(f1, 4),
         confusion_matrix={"tp": tp, "fp": fp, "tn": tn, "fn": fn},
         n_samples=n,
+        flag_thresholds=flag_thresholds,
     )
+
+
+def _derive_flag_thresholds(
+    labeled_data: list[tuple["EntailmentResult", bool]],
+) -> "dict[str, float] | None":
+    """Derive suggested flag thresholds from labeled data.
+
+    For each relevant metric, the suggested threshold is the midpoint between
+    the 20th percentile of *failing* responses and the 80th percentile of
+    *passing* responses on that metric. This places the threshold where it
+    best separates the two classes on your data.
+
+    Returns None if fewer than 5 labeled examples are available (not enough
+    data to derive meaningful thresholds).
+    """
+    from .flags import DEFAULT_FLAG_THRESHOLDS
+
+    passing = [r for r, ok in labeled_data if ok and r is not None]
+    failing = [r for r, ok in labeled_data if not ok and r is not None]
+
+    if len(passing) < 3 or len(failing) < 3:
+        return None
+
+    def _pct(values: list[float], p: float) -> float:
+        if not values:
+            return 0.0
+        sorted_v = sorted(values)
+        idx = max(0, min(len(sorted_v) - 1, int(p * len(sorted_v))))
+        return sorted_v[idx]
+
+    result: dict[str, float] = {}
+
+    # groundedness thresholds
+    pass_g = [r.groundedness for r in passing if r.groundedness is not None]
+    fail_g = [r.groundedness for r in failing if r.groundedness is not None]
+    if pass_g and fail_g:
+        midpoint = (_pct(fail_g, 0.20) + _pct(pass_g, 0.80)) / 2.0
+        result["ungrounded"] = round(max(0.0, min(1.0, midpoint)), 3)
+        result["hallucination_risk_groundedness"] = round(
+            max(0.0, min(1.0, midpoint + 0.1)), 3
+        )
+    else:
+        result["ungrounded"] = DEFAULT_FLAG_THRESHOLDS["ungrounded"]
+        result["hallucination_risk_groundedness"] = DEFAULT_FLAG_THRESHOLDS[
+            "hallucination_risk_groundedness"
+        ]
+
+    # completeness threshold
+    pass_c = [r.completeness for r in passing]
+    fail_c = [r.completeness for r in failing]
+    if pass_c and fail_c:
+        result["incomplete"] = round(
+            max(0.0, min(1.0, (_pct(fail_c, 0.20) + _pct(pass_c, 0.80)) / 2.0)), 3
+        )
+    else:
+        result["incomplete"] = DEFAULT_FLAG_THRESHOLDS["incomplete"]
+
+    # relevance threshold
+    pass_r = [r.relevance for r in passing]
+    fail_r = [r.relevance for r in failing]
+    if pass_r and fail_r:
+        result["off_topic"] = round(
+            max(0.0, min(1.0, (_pct(fail_r, 0.20) + _pct(pass_r, 0.80)) / 2.0)), 3
+        )
+    else:
+        result["off_topic"] = DEFAULT_FLAG_THRESHOLDS["off_topic"]
+
+    # consistency threshold
+    pass_cons = [r.consistency for r in passing]
+    fail_cons = [r.consistency for r in failing]
+    if pass_cons and fail_cons:
+        result["self_contradictory"] = round(
+            max(0.0, min(1.0, (_pct(fail_cons, 0.20) + _pct(pass_cons, 0.80)) / 2.0)), 3
+        )
+    else:
+        result["self_contradictory"] = DEFAULT_FLAG_THRESHOLDS["self_contradictory"]
+
+    # confidence threshold for hallucination_risk: high-confidence failing responses
+    fail_conf = [r.confidence for r in failing]
+    result["hallucination_risk_confidence"] = round(
+        _pct(fail_conf, 0.80) if fail_conf else DEFAULT_FLAG_THRESHOLDS["hallucination_risk_confidence"],
+        3,
+    )
+
+    return result
 
 
 def schedule_recalibration(agent: object, cadence: str) -> object:
