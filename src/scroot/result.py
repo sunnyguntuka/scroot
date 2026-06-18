@@ -58,6 +58,17 @@ class EntailmentResult:
     context_used: "bool | None" = None
     iqs_metric_count: "int | None" = None
 
+    # Opt-in cached intermediates (Auditor keep_intermediates=True).
+    # None by default — never affects scoring output.
+    # Fields when populated:
+    #   "query_embedding":    np.ndarray, shape (dim,)
+    #   "response_embeddings": np.ndarray, shape (n_sentences, dim) — one per sentence
+    #   "response_sentences":  list[str] — sentences used for response_embeddings
+    #   "consistency_sentences": list[str] — sentences scored for consistency
+    #   "consistency_raw_scores": list — raw CrossEncoder logits per pair
+    #   "consistency_pairs":  list[tuple[int,int]] — (i,j) index pairs evaluated
+    intermediates: "dict | None" = None
+
     def __post_init__(self) -> None:
         active = self._metric_scores()  # excludes groundedness when None
         if self.context_used is None:

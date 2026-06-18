@@ -11,7 +11,6 @@ Constraints verified here:
 from __future__ import annotations
 
 import pytest
-from unittest.mock import MagicMock, patch
 
 
 # ---------------------------------------------------------------------------
@@ -223,9 +222,6 @@ class TestMiniIqsIntegration:
 
     def test_no_context_groundedness_excluded(self):
         """Without context, groundedness dim absent; mini_iqs from relevance only."""
-        from scroot import Auditor
-        import warnings
-        auditor = Auditor(compute_evidence_map=False)
         # No-context path: evidence_map is None, test via _compute_mini_iqs directly
         from scroot.evidence import EvidenceEntry, _compute_mini_iqs
         import numpy as np
@@ -239,8 +235,6 @@ class TestMiniIqsIntegration:
 
     def test_zero_extra_model_calls(self):
         """Adding mini-IQS must not add any NLI or embedding model calls."""
-        import numpy as np
-        from unittest.mock import MagicMock, patch, call
         from scroot import Auditor
 
         auditor = Auditor()
