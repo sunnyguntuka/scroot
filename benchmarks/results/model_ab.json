@@ -1,0 +1,33 @@
+{
+  "benchmark": "model_ab_summeval_groundedness",
+  "date": "2026-06-19",
+  "n_samples": 60,
+  "subset": "stratified-400",
+  "top_k_premises": 8,
+  "model_a": {
+    "name": "cross-encoder/nli-deberta-v3-base",
+    "n": 60,
+    "spearman_rho": 0.2682,
+    "spearman_p": 0.038304,
+    "pearson_r": 0.2589,
+    "pearson_p": 0.045774,
+    "mean_latency_ms": 2088.8,
+    "mean_groundedness": 0.5981
+  },
+  "model_b": {
+    "name": "cross-encoder/nli-deberta-v3-large",
+    "n": 60,
+    "spearman_rho": 0.3616,
+    "spearman_p": 0.004525,
+    "pearson_r": 0.3551,
+    "pearson_p": 0.005366,
+    "mean_latency_ms": 6168.7,
+    "mean_groundedness": 0.555
+  },
+  "agreement": {
+    "mean_abs_groundedness_delta": 0.1231,
+    "max_abs_delta": 1.0,
+    "inter_model_spearman": 0.738
+  },
+  "winner_by_rho": "B"
+}
