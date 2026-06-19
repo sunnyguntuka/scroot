@@ -38,6 +38,7 @@ from pathlib import Path
 RESULTS_DIR = Path(__file__).parent / "results"
 DEFAULT_DATASET = Path(__file__).parent / "datasets" / "nq_500_perturbed.jsonl"
 OUTPUT_PATH = RESULTS_DIR / "correlation.json"
+SAMPLES_PATH = RESULTS_DIR / "correlation_samples.jsonl"
 PLOT_PATH = RESULTS_DIR / "correlation_scatter.png"
 
 TARGET_RHO = -0.35   # IQS harmonic mean collapses to 0 on any hallucination.
@@ -150,8 +151,38 @@ def _spearman(x: list[float], y: list[float]) -> tuple[float, float | None]:
         return float(rho), None
 
 
+def _kendall_tau(x: list[float], y: list[float]) -> tuple[float, float | None]:
+    try:
+        from scipy.stats import kendalltau
+        tau, pval = kendalltau(x, y)
+        return float(tau), float(pval)
+    except ImportError:
+        n = len(x)
+        concordant = discordant = 0
+        for i in range(n):
+            for j in range(i + 1, n):
+                dx = x[i] - x[j]
+                dy = y[i] - y[j]
+                if dx * dy > 0:
+                    concordant += 1
+                elif dx * dy < 0:
+                    discordant += 1
+        total = n * (n - 1) // 2
+        tau = (concordant - discordant) / total if total else 0.0
+        return float(tau), None
+
+
+def _binary_auc(pos_scores: list[float], neg_scores: list[float]) -> float:
+    """Wilcoxon-Mann-Whitney AUC: P(pos > neg). O(n*m) but n,m <= 500."""
+    wins = sum(1 for p in pos_scores for n in neg_scores if p > n)
+    ties = sum(1 for p in pos_scores for n in neg_scores if p == n)
+    total = len(pos_scores) * len(neg_scores)
+    return (wins + 0.5 * ties) / total if total else 0.5
+
+
 def _compute_stats(scored: list[dict], total_time_s: float = 0.0) -> dict:
     levels = [r["perturbation_level"] for r in scored]
+    iqs_vals = [r["iqs"] for r in scored]
 
     # Per-metric Spearman correlations vs perturbation level
     correlations: dict[str, dict] = {}
@@ -162,15 +193,24 @@ def _compute_stats(scored: list[dict], total_time_s: float = 0.0) -> dict:
         if pval is not None:
             entry["p_value"] = round(pval, 6)
         if metric == "iqs":
-            entry["target"] = "< -0.85"
+            entry["target"] = f"< {TARGET_RHO}"
             entry["passed"] = rho < TARGET_RHO
         correlations[f"{metric}_vs_perturbation"] = entry
 
+    # Kendall's tau (IQS vs perturbation level)
+    tau, tau_p = _kendall_tau(levels, iqs_vals)
+    correlations["iqs_vs_perturbation"]["kendall_tau"] = round(tau, 4)
+    if tau_p is not None:
+        correlations["iqs_vs_perturbation"]["kendall_tau_p"] = round(tau_p, 6)
+
     # Per-level statistics for IQS
-    iqs_vals = [r["iqs"] for r in scored]
     per_level: dict[str, dict] = {}
+    level_scores: dict[int, list[float]] = {lvl: [] for lvl in range(5)}
+    for r in scored:
+        level_scores[r["perturbation_level"]].append(r["iqs"])
+
     for lvl in range(5):
-        subset = [r["iqs"] for r in scored if r["perturbation_level"] == lvl]
+        subset = level_scores[lvl]
         n = len(subset)
         mean = sum(subset) / n if n else 0.0
         variance = sum((s - mean) ** 2 for s in subset) / n if n > 1 else 0.0
@@ -182,6 +222,35 @@ def _compute_stats(scored: list[dict], total_time_s: float = 0.0) -> dict:
             "max_iqs": round(max(subset), 4) if subset else 0.0,
         }
 
+    # Binary AUC: A0 (grounded) vs A4 (off-topic) — headline discrimination metric
+    a0 = level_scores[0]
+    a4 = level_scores[4]
+    a3 = level_scores[3]
+    auc_a0_vs_a4 = _binary_auc(a0, a4)
+    auc_a0_vs_a3 = _binary_auc(a0, a3)
+
+    # Binary accuracy at threshold 0.5: A0 should score >= 0.5, A4 should score < 0.5
+    threshold = 0.5
+    a0_correct = sum(1 for s in a0 if s >= threshold)
+    a4_correct = sum(1 for s in a4 if s < threshold)
+    binary_accuracy = (a0_correct + a4_correct) / (len(a0) + len(a4)) if (a0 and a4) else 0.0
+
+    # Mean IQS separation across adjacent levels
+    means = [per_level[f"A{lvl}"]["mean_iqs"] for lvl in range(5)]
+    mean_sep_a0_a4 = round(means[0] - means[4], 4)
+    adj_separations = {
+        f"A{i}_vs_A{i+1}": round(means[i] - means[i + 1], 4)
+        for i in range(4)
+    }
+
+    discrimination = {
+        "binary_auc_a0_vs_a4": round(auc_a0_vs_a4, 4),
+        "binary_auc_a0_vs_a3": round(auc_a0_vs_a3, 4),
+        "binary_accuracy_threshold_0.5": round(binary_accuracy, 4),
+        "mean_separation_a0_a4": mean_sep_a0_a4,
+        "adjacent_level_separations": adj_separations,
+    }
+
     return {
         "benchmark": "correlation",
         "dataset": "Google Natural Questions (nq_500_perturbed.jsonl)",
@@ -192,6 +261,7 @@ def _compute_stats(scored: list[dict], total_time_s: float = 0.0) -> dict:
             total_time_s / len(scored) * 1000, 1) if scored else 0.0,
         "correlations": correlations,
         "per_level_means": per_level,
+        "discrimination": discrimination,
         "passed": correlations["iqs_vs_perturbation"]["passed"],
     }
 
@@ -222,8 +292,15 @@ def _print_results(stats: dict) -> None:
         print(f"    {metric:<15} {r:+.4f}{flag}")
 
     iqs_rho = corrs["iqs_vs_perturbation"]["spearman_r"]
+    iqs_tau = corrs["iqs_vs_perturbation"].get("kendall_tau", "n/a")
     passed = corrs["iqs_vs_perturbation"]["passed"]
-    print(f"\n  IQS Spearman rho:  {iqs_rho:+.4f}  (target: < {TARGET_RHO})")
+    disc = stats.get("discrimination", {})
+    print(f"\n  IQS Spearman rho:    {iqs_rho:+.4f}  (target: < {TARGET_RHO})")
+    print(f"  IQS Kendall tau:     {iqs_tau:+.4f}" if isinstance(iqs_tau, float) else f"  IQS Kendall tau:     {iqs_tau}")
+    print(f"  Binary AUC A0/A4:    {disc.get('binary_auc_a0_vs_a4', 'n/a'):.4f}")
+    print(f"  Binary AUC A0/A3:    {disc.get('binary_auc_a0_vs_a3', 'n/a'):.4f}")
+    print(f"  Binary accuracy:     {disc.get('binary_accuracy_threshold_0.5', 'n/a'):.4f}  (threshold=0.5, A0 vs A4)")
+    print(f"  Mean separation A0-A4: {disc.get('mean_separation_a0_a4', 'n/a'):.4f}")
     print(f"  Passed:  {'YES [PASS]' if passed else 'NO [FAIL]'}\n")
 
 
@@ -313,8 +390,13 @@ def run(
     with OUTPUT_PATH.open("w") as f:
         json.dump(stats, f, indent=2)
 
+    with SAMPLES_PATH.open("w", encoding="utf-8") as f:
+        for record in scored:
+            f.write(json.dumps(record) + "\n")
+
     _print_results(stats)
     print(f"Results -> {OUTPUT_PATH}")
+    print(f"Samples -> {SAMPLES_PATH}")
 
     if not no_plot:
         _plot(scored, stats["correlations"]["iqs_vs_perturbation"]["spearman_r"],

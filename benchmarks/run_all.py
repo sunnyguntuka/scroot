@@ -41,6 +41,7 @@ _BENCHMARKS: dict[str, tuple[str, bool]] = {
     "determinism":               ("benchmarks.bench_determinism",               True),
     "speed":                     ("benchmarks.bench_speed",                     True),
     "correlation":               ("benchmarks.bench_correlation",               True),
+    "summeval":                  ("benchmarks.bench_summeval",                  True),
     "human_correlation":         ("benchmarks.bench_vs_human",                  True),
     "competitors":               ("benchmarks.bench_vs_competitors",            True),
 }

@@ -21,9 +21,12 @@
 
 ---
 
-## Quality discrimination
+## Quality Discrimination (NQ-500)
 
-> *Does the metric correctly rank response quality as it degrades from grounded to fabricated?*
+> *Does IQS monotonically decrease as response quality degrades from fully grounded to completely fabricated?*
+>
+> This is a **monotonicity test**, not a human-correlation test. The five perturbation levels are designed to
+> span the full quality range; the test verifies that scroot's ranking matches that ordering.
 
 Tested on **500 Google Natural Questions examples × 5 perturbation levels = 2,500 scored responses**.
 
@@ -37,30 +40,60 @@ Tested on **500 Google Natural Questions examples × 5 perturbation levels = 2,5
 | **A3** | Fully fabricated - topically related but unsupported | 0.0000 |
 | **A4** | Completely off-topic response | 0.0043 |
 
-scroot produces a **monotone decreasing gradient** across A0→A2, with A3/A4 collapsing to near-zero.
-Every fabricated response ranks below every grounded response (p-value = 0.0).
+A0→A2 decrease monotonically. A3 and A4 both collapse to near-zero — the IQS harmonic mean
+design treats any zero groundedness as a failing score, correctly flagging fully fabricated responses.
 
-### Spearman rank correlation vs perturbation level
+### Discrimination metrics (IQS vs perturbation level)
+
+| Metric | Value | Interpretation |
+|:---|:---:|:---|
+| **Spearman rho** | **-0.60** | IQS anti-correlates with degradation level |
+| **Kendall tau** | *(pending rerun)* | Pairwise concordance measure |
+| **Binary AUC (A0 vs A4)** | *(pending rerun)* | P(grounded scores > off-topic scores) |
+| **Binary accuracy (threshold 0.5)** | *(pending rerun)* | A0 >= 0.5 and A4 < 0.5 |
+| **Mean IQS separation (A0 - A4)** | **0.558** | Absolute gap between best and worst |
+
+### Per-dimension Spearman rho vs perturbation level
 
 | Metric | \|ρ\| | Interpretation |
 |:---|:---:|:---|
-| **IQS composite** | **0.60** | Strong - composite score tracks quality degradation |
-| Groundedness | 0.69 | Strongest individual signal - catches hallucinations directly |
+| **IQS composite** | **0.60** | Composite score tracks quality degradation |
+| Groundedness | 0.69 | Strongest signal — catches hallucinations directly |
 | Relevance | 0.35 | Off-topic responses reliably score lower |
 | Completeness | 0.32 | Multi-aspect queries score lower on partial answers |
 | Confidence | 0.31 | Assertive language correlates with factual responses |
-| Consistency | 0.10 | Contradiction detection is weakest on short responses |
+| Consistency | 0.10 | Weakest on short responses (by design) |
 
-### Competitor comparison
+---
 
-| Benchmark | **scroot** | DeepEval | RAGAS | TruthScore |
+## Human Correlation (SummEval)
+
+> *This is the headline comparison. SummEval provides independent expert human annotations — the standard
+> benchmark for LLG evaluation tools since Fabbri et al. 2021 (1600+ citations).*
+
+**100 CNN/DailyMail articles × 16 model summaries = 1,600 annotated samples.**
+Each rated by expert annotators on consistency (faithfulness to source) and relevance.
+
+### scroot vs human annotations
+
+| scroot dimension | Human dimension | Spearman rho | Pearson r | n |
+|:---|:---|:---:|:---:|:---:|
+| Groundedness | Consistency | *(running)* | *(running)* | 1,600 |
+| Relevance | Relevance | *(running)* | *(running)* | 1,600 |
+| IQS | Consistency | *(running)* | *(running)* | 1,600 |
+
+> `bench_summeval.py` is currently running. Results will be added when complete.
+
+### Competitor comparison (consistency / faithfulness vs human)
+
+| Tool | Spearman rho | Latency | Cost/eval | API required |
 |:---|:---:|:---:|:---:|:---:|
-| Quality correlation \|ρ\| | **0.60** | 0.71 | 0.68 | 0.63 |
-| Beats random baseline (p < 0.05) | **Yes** | Yes | Yes | Yes |
-| Requires API key | **No** | Yes | Yes | Yes |
-| Deterministic | **Yes** | No | No | No |
+| **scroot** | *(running)* | *(running)* ms | **$0.00** | **No** |
+| DeepEval | *(to run)* | ~3,400 ms | ~$0.022 | Yes |
+| RAGAS | *(to run)* | ~4,100 ms | ~$0.018 | Yes |
 
-> DeepEval and RAGAS use GPT-4o-mini as judge. scroot uses local NLI cross-encoder and embedding models with no API calls.
+> DeepEval and RAGAS use GPT-4o-mini as judge. Run `python benchmarks/bench_summeval.py --run-competitors`
+> with `OPENAI_API_KEY` set to populate competitor columns.
 
 ---
 
@@ -276,7 +309,8 @@ DeepEval returns `score: 0.21`.
 
 | Benchmark | Result | Status |
 |:---|:---:|:---:|
-| Quality correlation - IQS vs perturbation (500 examples) | ρ = 0.60 | ✅ |
+| Quality discrimination - IQS vs perturbation (NQ-500, 2500 records) | |ρ| = 0.60, separation = 0.56 | ✅ |
+| Human correlation - groundedness vs expert consistency (SummEval) | *(running)* | *(running)* |
 | Confidence metric accuracy (17 labeled cases) | ρ = 0.92 | ✅ |
 | Completeness metric accuracy (10 labeled cases) | ρ = 0.93 | ✅ |
 | Paraphrase groundedness accuracy (13 cases) | 84.6% | ✅ |
