@@ -47,11 +47,12 @@ design treats any zero groundedness as a failing score, correctly flagging fully
 
 | Metric | Value | Interpretation |
 |:---|:---:|:---|
-| **Spearman rho** | **-0.60** | IQS anti-correlates with degradation level |
-| **Kendall tau** | *(pending rerun)* | Pairwise concordance measure |
-| **Binary AUC (A0 vs A4)** | *(pending rerun)* | P(grounded scores > off-topic scores) |
-| **Binary accuracy (threshold 0.5)** | *(pending rerun)* | A0 >= 0.5 and A4 < 0.5 |
-| **Mean IQS separation (A0 - A4)** | **0.558** | Absolute gap between best and worst |
+| **Spearman rho** | **-0.60** (p=0.0) | IQS anti-correlates with degradation level |
+| **Kendall tau** | **-0.49** (p=0.0) | Pairwise concordance across all 2,500 pairs |
+| **Binary AUC (A0 vs A4)** | **0.865** | P(grounded score > off-topic score) |
+| **Binary AUC (A0 vs A3)** | **0.879** | P(grounded score > fabricated score) |
+| **Binary accuracy (threshold 0.5)** | **80.1%** | A0 scores ≥ 0.5 or A4 scores < 0.5 |
+| **Mean IQS separation (A0 − A4)** | **0.558** | Absolute gap between best and worst level |
 
 ### Per-dimension Spearman rho vs perturbation level
 
@@ -309,7 +310,7 @@ DeepEval returns `score: 0.21`.
 
 | Benchmark | Result | Status |
 |:---|:---:|:---:|
-| Quality discrimination - IQS vs perturbation (NQ-500, 2500 records) | |ρ| = 0.60, separation = 0.56 | ✅ |
+| Quality discrimination - IQS vs perturbation (NQ-500, 2500 records) | AUC = 0.865, |ρ| = 0.60, τ = -0.49 | ✅ |
 | Human correlation - groundedness vs expert consistency (SummEval) | *(running)* | *(running)* |
 | Confidence metric accuracy (17 labeled cases) | ρ = 0.92 | ✅ |
 | Completeness metric accuracy (10 labeled cases) | ρ = 0.93 | ✅ |
