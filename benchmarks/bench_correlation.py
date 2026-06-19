@@ -202,29 +202,29 @@ def _compute_stats(scored: list[dict], total_time_s: float = 0.0) -> dict:
 
 def _print_results(stats: dict) -> None:
     pl = stats["per_level_means"]
-    print("\n" + "─" * 66)
+    print("\n" + "-" * 66)
     print(f"  {'Level':<8} {'N':>5} {'Mean IQS':>10} {'Std':>7} "
           f"{'Min':>7} {'Max':>7}")
-    print("─" * 66)
+    print("-" * 66)
     for name in ["A0", "A1", "A2", "A3", "A4"]:
         s = pl[name]
         print(f"  {name:<8} {s['count']:>5} {s['mean_iqs']:>10.4f} "
               f"{s['std_iqs']:>7.4f} {s['min_iqs']:>7.4f} "
               f"{s['max_iqs']:>7.4f}")
-    print("─" * 66)
+    print("-" * 66)
 
-    print("\n  Per-metric Spearman ρ vs perturbation level:")
+    print("\n  Per-metric Spearman rho vs perturbation level:")
     corrs = stats["correlations"]
     for metric in METRICS:
         key = f"{metric}_vs_perturbation"
         r = corrs[key]["spearman_r"]
-        flag = "  ← primary" if metric == "iqs" else ""
+        flag = "  <- primary" if metric == "iqs" else ""
         print(f"    {metric:<15} {r:+.4f}{flag}")
 
     iqs_rho = corrs["iqs_vs_perturbation"]["spearman_r"]
     passed = corrs["iqs_vs_perturbation"]["passed"]
-    print(f"\n  IQS Spearman ρ:  {iqs_rho:+.4f}  (target: < {TARGET_RHO})")
-    print(f"  Passed:  {'YES ✓' if passed else 'NO ✗'}\n")
+    print(f"\n  IQS Spearman rho:  {iqs_rho:+.4f}  (target: < {TARGET_RHO})")
+    print(f"  Passed:  {'YES [PASS]' if passed else 'NO [FAIL]'}\n")
 
 
 def _plot(scored: list[dict], rho: float, out: Path) -> None:
@@ -277,7 +277,7 @@ def _plot(scored: list[dict], rho: float, out: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(out, dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"Plot saved → {out}")
+    print(f"Plot saved -> {out}")
 
 
 # ---------------------------------------------------------------------------
@@ -308,12 +308,13 @@ def run(
     elapsed = time.perf_counter() - t0
 
     stats = _compute_stats(scored, elapsed)
-    _print_results(stats)
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with OUTPUT_PATH.open("w") as f:
         json.dump(stats, f, indent=2)
-    print(f"Results → {OUTPUT_PATH}")
+
+    _print_results(stats)
+    print(f"Results -> {OUTPUT_PATH}")
 
     if not no_plot:
         _plot(scored, stats["correlations"]["iqs_vs_perturbation"]["spearman_r"],

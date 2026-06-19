@@ -51,7 +51,7 @@ Zero cost. Deterministic. 100% coverage.
 
 | Feature | scroot | DeepEval | RAGAS | TruthScore |
 |---|---|---|---|---|
-| Quality correlation (\|ρ\|) | **0.69** | 0.71 | 0.68 | 0.63 |
+| Quality correlation (\|ρ\|) | **0.60** | 0.71 | 0.68 | 0.63 |
 | Cost per eval | **$0.00** | $0.01–0.05 | $0.01–0.05 | Requires LLM |
 | Latency (CPU) | **595ms** | ~3.4s | ~4.1s | ~2.8s |
 | Latency (GPU) | **10–50ms** | 2–5s | 2–5s | 2–5s+ |

@@ -8,7 +8,7 @@
 
 | | scroot | DeepEval | RAGAS | TruthScore |
 |:---|:---:|:---:|:---:|:---:|
-| Quality correlation \|ρ\| | **0.69** | 0.71 | 0.68 | 0.63 |
+| Quality correlation \|ρ\| | **0.60** | 0.71 | 0.68 | 0.63 |
 | Cost per evaluation | **$0.00** | $0.022 | $0.018 | $0.015 |
 | Latency (CPU) | **595 ms** | ~3,400 ms | ~4,100 ms | ~2,800 ms |
 | LLM call required | **No** | Yes | Yes | Yes |
@@ -31,31 +31,31 @@ Tested on **500 Google Natural Questions examples × 5 perturbation levels = 2,5
 
 | Level | Description | Mean IQS |
 |:---:|:---|:---:|
-| **A0** | Correct, fully grounded answer extracted from source context | 0.284 |
-| **A1** | Same answer with added epistemic hedging ("reportedly...") | 0.208 |
-| **A2** | One grounded sentence + one fabricated sentence | 0.139 |
-| **A3** | Fully fabricated - topically related but unsupported | 0.009 |
-| **A4** | Completely off-topic response | 0.001 |
+| **A0** | Correct, fully grounded answer extracted from source context | 0.5625 |
+| **A1** | Same answer with added epistemic hedging ("reportedly...") | 0.4209 |
+| **A2** | One grounded sentence + one fabricated sentence | 0.2506 |
+| **A3** | Fully fabricated - topically related but unsupported | 0.0000 |
+| **A4** | Completely off-topic response | 0.0043 |
 
-scroot produces a **strictly monotone decreasing gradient** across all five levels.
+scroot produces a **monotone decreasing gradient** across A0→A2, with A3/A4 collapsing to near-zero.
 Every fabricated response ranks below every grounded response (p-value = 0.0).
 
 ### Spearman rank correlation vs perturbation level
 
 | Metric | \|ρ\| | Interpretation |
 |:---|:---:|:---|
-| **IQS composite** | **0.69** | Strong - composite score tracks quality degradation |
-| Groundedness | 0.55 | Strongest individual signal - catches hallucinations directly |
-| Confidence | 0.28 | Assertive language correlates with factual responses |
+| **IQS composite** | **0.60** | Strong - composite score tracks quality degradation |
+| Groundedness | 0.69 | Strongest individual signal - catches hallucinations directly |
 | Relevance | 0.35 | Off-topic responses reliably score lower |
 | Completeness | 0.32 | Multi-aspect queries score lower on partial answers |
-| Consistency | 0.19 | Contradiction detection is weakest on short responses |
+| Confidence | 0.31 | Assertive language correlates with factual responses |
+| Consistency | 0.10 | Contradiction detection is weakest on short responses |
 
 ### Competitor comparison
 
 | Benchmark | **scroot** | DeepEval | RAGAS | TruthScore |
 |:---|:---:|:---:|:---:|:---:|
-| Quality correlation \|ρ\| | **0.69** | 0.71 | 0.68 | 0.63 |
+| Quality correlation \|ρ\| | **0.60** | 0.71 | 0.68 | 0.63 |
 | Beats random baseline (p < 0.05) | **Yes** | Yes | Yes | Yes |
 | Requires API key | **No** | Yes | Yes | Yes |
 | Deterministic | **Yes** | No | No | No |
@@ -276,7 +276,7 @@ DeepEval returns `score: 0.21`.
 
 | Benchmark | Result | Status |
 |:---|:---:|:---:|
-| Quality correlation - IQS vs perturbation (500 examples) | ρ = 0.69 | ✅ |
+| Quality correlation - IQS vs perturbation (500 examples) | ρ = 0.60 | ✅ |
 | Confidence metric accuracy (17 labeled cases) | ρ = 0.92 | ✅ |
 | Completeness metric accuracy (10 labeled cases) | ρ = 0.93 | ✅ |
 | Paraphrase groundedness accuracy (13 cases) | 84.6% | ✅ |
@@ -332,4 +332,4 @@ python -m benchmarks.run_all
 
 ---
 
-*scroot v0.1.2 - Apache-2.0 - [github.com/sunnyguntuka/scroot](https://github.com/sunnyguntuka/scroot)*
+*scroot v0.3.1 - Apache-2.0 - [github.com/sunnyguntuka/scroot](https://github.com/sunnyguntuka/scroot)*

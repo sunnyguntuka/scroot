@@ -71,11 +71,11 @@ def _generate_summary(all_results: dict[str, dict | None]) -> None:
             continue
 
         passed = result.get("passed")
-        status = "PASS ✓" if passed else ("FAIL ✗" if passed is False else "—")
+        status = "PASS" if passed else ("FAIL" if passed is False else "-")
 
         if name == "correlation":
             corr = result.get("correlations", {}).get("iqs_vs_perturbation", {})
-            key = f"ρ = {corr.get('spearman_r', '?')}"
+            key = f"rho = {corr.get('spearman_r', '?')}"
         elif name == "human_correlation":
             corr = result.get("correlations", {}).get("iqs_vs_human_pearson", {})
             key = f"r = {corr.get('r', '?')}"
@@ -91,7 +91,7 @@ def _generate_summary(all_results: dict[str, dict | None]) -> None:
                 (c for c in result.get("comparisons", {}).values()
                  if isinstance(c, dict) and c.get("framework") == "scroot"), {}
             )
-            key = f"scroot ρ = {scroot.get('spearman_r', '?')}"
+            key = f"scroot rho = {scroot.get('spearman_r', '?')}"
         elif name == "claim_accuracy":
             key = (f"P={result.get('precision','?')}  "
                    f"R={result.get('recall','?')}  "
@@ -130,7 +130,7 @@ def _generate_summary(all_results: dict[str, dict | None]) -> None:
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     SUMMARY_PATH.write_text("\n".join(lines), encoding="utf-8")
-    print(f"\nSummary → {SUMMARY_PATH}")
+    print(f"\nSummary -> {SUMMARY_PATH}")
 
 
 # ---------------------------------------------------------------------------
@@ -189,7 +189,7 @@ def main() -> None:
             all_results[name] = result
 
             passed = result.get("passed") if result else None
-            status = "PASS ✓" if passed else ("FAIL ✗" if passed is False else "done")
+            status = "PASS" if passed else ("FAIL" if passed is False else "done")
             print(f"\n[{name}] {status}  ({elapsed:.1f}s)")
 
             if passed is False:
