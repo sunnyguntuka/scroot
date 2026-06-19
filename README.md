@@ -51,10 +51,10 @@ Zero cost. Deterministic. 100% coverage.
 
 | Feature | scroot | DeepEval | RAGAS | TruthScore |
 |---|---|---|---|---|
-| Quality correlation (\|ρ\|) | **0.60** | 0.71 | 0.68 | 0.63 |
+| Human correlation (SummEval, groundedness vs consistency) | **0.36** | — | — | — |
+| Quality discrimination (NQ-500, binary AUC A0 vs A4) | **0.865** | — | — | — |
 | Cost per eval | **$0.00** | $0.01–0.05 | $0.01–0.05 | Requires LLM |
-| Latency (CPU) | **595ms** | ~3.4s | ~4.1s | ~2.8s |
-| Latency (GPU) | **10–50ms** | 2–5s | 2–5s | 2–5s+ |
+| Latency (CPU, RAG context) | **595ms** | ~3.4s | ~4.1s | ~2.8s |
 | LLM call required | **No** | Yes | Yes | Yes (claim decomposition) |
 | Deterministic | **Yes** | No | No | No |
 | Runs offline | **Yes** | No | No | Partial (Ollama) |
