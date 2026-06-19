@@ -1,0 +1,10 @@
+{
+  "n_examples": 100,
+  "n_runs": 10,
+  "n_metrics": 6,
+  "total_checks": 5400,
+  "n_deviations": 0,
+  "determinism_rate_pct": 100.0,
+  "passed": true,
+  "deviations": []
+}

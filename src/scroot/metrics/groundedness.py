@@ -52,6 +52,7 @@ def score_groundedness(
     similarity_fallback: bool = True,
     similarity_threshold: float = 0.82,
     top_k_chunks: int = 3,
+    top_k_premises: int | None = None,
     _capture: "dict | None" = None,
 ) -> tuple[float, dict]:
     """Score how well the response is grounded in the context.
@@ -148,6 +149,30 @@ def score_groundedness(
                 for s in sents:
                     nli_pairs.append((s, claim))
                     pair_chunk_idx.append(ci)
+
+            # --- Premise pre-filtering: keep only the top-k premise sentences
+            # most semantically similar to THIS claim before running the NLI
+            # cross-encoder. top_k_chunks bounds retrieval at the chunk level;
+            # a single retained chunk can still sentence-split into many
+            # premises, so NLI cost grows with total sentence count. Ranking
+            # premises by claim-similarity and keeping the top-k caps the NLI
+            # batch size per claim, cutting latency on large contexts while
+            # retaining the premises most likely to entail the claim. Requires
+            # an embedding model; no-op when k is None, k >= len(pairs), or no
+            # embedder is available.
+            if (top_k_premises is not None
+                    and emb_model is not None
+                    and claim_embs is not None
+                    and len(nli_pairs) > top_k_premises):
+                premise_texts = [p[0] for p in nli_pairs]
+                premise_embs = emb_model.encode(premise_texts,
+                                                convert_to_numpy=True)
+                sims = _cosine_batch(claim_embs[c_idx], premise_embs)
+                keep = sorted(
+                    np.argsort(sims)[::-1][:top_k_premises].tolist()
+                )
+                nli_pairs = [nli_pairs[j] for j in keep]
+                pair_chunk_idx = [pair_chunk_idx[j] for j in keep]
 
             raw_scores = model.predict(nli_pairs)
 

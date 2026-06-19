@@ -1,0 +1,27 @@
+{
+  "benchmark": "groundedness_topk_accuracy",
+  "n_samples": 50,
+  "mad_by_k": {
+    "3": {
+      "mad": 0.0,
+      "max_abs_diff": 0.0
+    },
+    "5": {
+      "mad": 0.0,
+      "max_abs_diff": 0.0
+    },
+    "8": {
+      "mad": 0.0,
+      "max_abs_diff": 0.0
+    },
+    "10": {
+      "mad": 0.0,
+      "max_abs_diff": 0.0
+    }
+  },
+  "determinism_deviations": 0,
+  "gates": {
+    "mad_lt_0.02": true,
+    "determinism_zero": true
+  }
+}
