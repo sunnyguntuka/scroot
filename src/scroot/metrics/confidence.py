@@ -16,7 +16,7 @@ import re
 # ---------------------------------------------------------------------------
 
 HEDGE_PATTERNS = [
-    r'\bmight\b', r'\bmay\b', r'\bcould\b', r'\bpossibly\b',
+    r'\bmight\b', r'\bmay\b(?!\s*\d)', r'\bcould\b', r'\bpossibly\b',
     r'\bperhaps\b', r'\bprobably\b', r'\blikely\b',
     r'\bi think\b', r'\bi believe\b', r'\bit seems\b',
     r'\bappears to\b', r'\bseems to\b', r'\bsuggest(?:s|ed)?\b',

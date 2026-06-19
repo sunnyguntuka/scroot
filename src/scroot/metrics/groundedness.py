@@ -12,6 +12,7 @@ Pipeline:
 
 from __future__ import annotations
 
+import re
 import numpy as np
 
 from ..models import get_nli_model
@@ -134,19 +135,33 @@ def score_groundedness(
                 selected_chunk_embs = chunk_embs if chunk_embs is not None else None
 
             # --- NLI on selected chunks ---
-            nli_pairs = [(chunk, claim) for chunk in selected_chunks]
+            # Sentence-split each chunk so the NLI cross-encoder receives
+            # single-sentence premises. The model degrades to NEUTRAL on
+            # long multi-sentence paragraphs even for verbatim content.
+            nli_pairs: list[tuple[str, str]] = []
+            pair_chunk_idx: list[int] = []  # maps each pair back to its chunk
+            for ci, chunk in enumerate(selected_chunks):
+                sents = re.split(r'(?<=[.!?])\s+', chunk.strip())
+                sents = [s.strip() for s in sents if len(s.split()) >= 4]
+                if not sents:
+                    sents = [chunk]
+                for s in sents:
+                    nli_pairs.append((s, claim))
+                    pair_chunk_idx.append(ci)
+
             raw_scores = model.predict(nli_pairs)
 
             best_entailment = 0.0
             best_contradiction = 0.0
             best_similarity = 0.0
 
-            for ch_local_idx, score_row in enumerate(raw_scores):
+            for pair_idx, score_row in enumerate(raw_scores):
                 probs = softmax(score_row)
                 ep = float(probs[LABEL_ENTAILMENT])
                 cp = float(probs[LABEL_CONTRADICTION])
 
                 # Bi-encoder similarity fallback in uncertain zone
+                chunk_idx = pair_chunk_idx[pair_idx]
                 if (emb_model is not None
                         and claim_embs is not None
                         and selected_chunk_embs is not None
@@ -155,7 +170,7 @@ def score_groundedness(
                     sim = float(
                         _cosine_batch(
                             claim_embs[c_idx],
-                            selected_chunk_embs[ch_local_idx:ch_local_idx + 1]
+                            selected_chunk_embs[chunk_idx:chunk_idx + 1]
                         )[0]
                     )
                     best_similarity = max(best_similarity, sim)

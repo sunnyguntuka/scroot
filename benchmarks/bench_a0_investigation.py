@@ -8,6 +8,11 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() not in ('utf-8', 'utf8'):
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
+# Remove benchmarks/ from sys.path so it doesn't shadow the HuggingFace
+# 'datasets' package that sentence-transformers imports internally.
+_bench_dir = str(Path(__file__).parent)
+if _bench_dir in sys.path:
+    sys.path.remove(_bench_dir)
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from scroot import Auditor
 
