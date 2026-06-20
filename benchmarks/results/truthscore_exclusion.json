@@ -1,0 +1,16 @@
+{
+  "tool": "TruthScore",
+  "pypi_package": "truthscore",
+  "latest_version": "0.3.0",
+  "installable": true,
+  "install_conflict": false,
+  "is_llm_free": false,
+  "included_in_comparison": false,
+  "exclusion_reason": "The PyPI 'truthscore' package is a reimplementation of RAGAS FactualCorrectness: it uses an LLM for claim decomposition (not LLM-free) and depends on ragas, so it is redundant with and not statistically independent of the RAGAS faithfulness baseline already reported. Genuinely LLM-free NLI faithfulness scorers (AlignScore, MiniCheck) have no PyPI distribution and were out of scope.",
+  "alternates_checked": {
+    "mini-check": "not on PyPI",
+    "minicheck": "not on PyPI",
+    "alignscore": "not on PyPI",
+    "trulens-eval": "exists but is an LLM-judge eval framework, not a single LLM-free faithfulness metric"
+  }
+}
