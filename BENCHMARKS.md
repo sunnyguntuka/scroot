@@ -91,24 +91,58 @@ the generic "Summarize the following article" query makes that dimension inappli
 
 ### Competitor comparison (faithfulness / groundedness vs human consistency)
 
-| Tool | Spearman rho | Latency | Cost/eval | API required |
-|:---|:---:|:---:|:---:|:---:|
-| **scroot groundedness** | **0.36** | **8,588 ms** | **$0.00** | **No** |
-| SummaC (NLI-based) | ~0.30–0.40 | n/a | $0.00 | No |
-| FactCC (NLI-based) | ~0.25–0.35 | n/a | $0.00 | No |
-| DeepEval | *(to run)* | ~3,400 ms | ~$0.022 | Yes (GPT-4o-mini) |
-| RAGAS | *(to run)* | ~4,100 ms | ~$0.018 | Yes (GPT-4o-mini) |
+| Tool | Spearman rho | Pearson r | Latency | Cost/eval | API required | n |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **scroot groundedness** | **0.36** | **0.41** | **8,588 ms** | **$0.00** | **No** | 1,600 |
+| SummaC (NLI-based) | ~0.30–0.40 | — | n/a | $0.00 | No | published |
+| FactCC (NLI-based) | ~0.25–0.35 | — | n/a | $0.00 | No | published |
+| DeepEval (GPT-4o-mini) | 0.28 | 0.24 | 8,002 ms | $0.000040 | Yes | 396 |
+| RAGAS | — | — | — | — | Yes | 0 |
 
-> scroot achieves ρ = 0.36 on SummEval consistency without any API calls, competitive with
-> published NLI-based baselines (SummaC, FactCC). LLM-as-judge tools typically reach
-> ρ = 0.50–0.65 on this task at ~$0.02/sample.
-> Run `python benchmarks/bench_summeval.py --run-competitors` with `OPENAI_API_KEY` to add
-> DeepEval and RAGAS scores to the comparison.
+> Measured June 2026. DeepEval on 400-sample stratified subset (80/quintile × 5 tiers);
+> RAGAS skipped (ragas 0.4.3 incompatible with installed langchain 1.x stack).
+> scroot groundedness (ρ=0.36) exceeds DeepEval GPT-4o-mini (ρ=0.28) at zero cost and
+> 100% determinism. LLM-as-judge tools typically reach ρ=0.50–0.65 on this task with
+> larger models (GPT-4, Claude) at ~$0.02/sample.
+> Full results: `benchmarks/results/summeval_competitors.json`
 
 **Note on IQS and summarization:** scroot IQS is designed for RAG question-answering where
 a specific query is available. On summarization tasks with a generic query, the completeness
 and relevance dimensions are not meaningful, and the harmonic-mean IQS collapses toward zero.
 Use `scroot groundedness` directly when evaluating summarization faithfulness.
+
+### IQS applicability gating (opt-in)
+
+`Auditor(gate_inapplicable_dimensions=True)` detects dimensions that are
+structurally inapplicable to a task and excludes them from IQS instead of
+letting their non-signal collapse the harmonic mean. On SummEval the generic
+"Summarize the following article" query makes *relevance* inapplicable; gating
+it out recovers most of the IQS-vs-human signal:
+
+| IQS vs human consistency | Spearman rho | n | p |
+|:---|:---:|:---:|:---:|
+| ungated (default) | 0.117 | 1,600 | 2.6e-06 |
+| **gated** | **0.248** | 1,600 | 6.7e-24 |
+
+Discrimination is preserved: on NQ-500 (where queries are real questions, so
+nothing is gated except 380 incidentally-generic ones), the A0-vs-A4 IQS
+discrimination AUC is unchanged at 0.86 (0.8651 → 0.8625). groundedness and
+completeness are never gated. Reproduce with
+`python benchmarks/bench_composite_fix_validate.py`.
+
+### NLI backbone A/B (groundedness)
+
+Groundedness accepts any NLI cross-encoder via `Auditor(nli_model=...)`. On a
+60-sample stratified SummEval subset (groundedness-only, `top_k_premises=8`):
+
+| NLI model | rho vs human consistency | Mean latency |
+|:---|:---:|:---:|
+| `nli-deberta-v3-base` (default) | 0.268 | 2,089 ms |
+| **`nli-deberta-v3-large`** | **0.362** | 6,169 ms |
+
+The large model is a meaningfully better faithfulness backbone (+0.09 rho) at
+~3× the latency. Inter-model rank agreement is rho=0.74. Reproduce with
+`python benchmarks/bench_model_ab.py`.
 
 ---
 
@@ -276,6 +310,25 @@ This is a hard requirement for compliance, auditing, and A/B testing production 
 | RAGAS | ~4,100 ms | 6.9× slower |
 
 > Competitor latency includes API round-trip time. scroot has zero network dependency.
+
+### top-k premise pre-filtering (opt-in)
+
+`score_groundedness(top_k_premises=k)` ranks the sentence-level NLI premises by
+embedding-similarity to the claim and keeps only the top `k` before the
+cross-encoder runs, capping NLI cost on large contexts. Speedup grows with
+context size, with no change to the groundedness score (the highest-similarity
+premises are the entailing ones):
+
+| Context sentences | OFF | ON (k=5) | Speedup | Score delta |
+|------------------:|----:|---------:|--------:|------------:|
+| 5  | 1,159 ms | 1,587 ms | 0.73× | 0.000 |
+| 10 | 2,473 ms | 1,782 ms | 1.39× | 0.000 |
+| 20 | 4,199 ms | 1,861 ms | 2.26× | 0.000 |
+| 40 | 7,866 ms | 2,220 ms | **3.54×** | 0.000 |
+
+Mean-absolute score difference vs OFF is 0.00000 across k ∈ {3,5,8,10} on 50
+NQ samples. Reproduce with `bench_groundedness_latency.py` /
+`bench_groundedness_topk_accuracy.py`.
 
 ---
 
