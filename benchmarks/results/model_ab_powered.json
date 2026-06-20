@@ -1,0 +1,56 @@
+{
+  "benchmark": "model_ab_powered_summeval_groundedness",
+  "date": "2026-06-20",
+  "n_samples": 300,
+  "stratification": "5 rank tiers x 60/tier",
+  "top_k_premises": 8,
+  "bootstrap": {
+    "n_iter": 1000,
+    "n_effective": 1000,
+    "seed": 1234,
+    "ci": "95% percentile, paired over sample indices"
+  },
+  "model_a": {
+    "name": "cross-encoder/nli-deberta-v3-base",
+    "n": 300,
+    "spearman_rho": 0.3158,
+    "spearman_p": 2.26e-08,
+    "pearson_r": 0.3776,
+    "pearson_p": 1.33e-11,
+    "mean_latency_ms": 2651.2,
+    "mean_groundedness": 0.8436,
+    "spearman_rho_ci95": [
+      0.1864,
+      0.4289
+    ]
+  },
+  "model_b": {
+    "name": "cross-encoder/nli-deberta-v3-large",
+    "n": 300,
+    "spearman_rho": 0.3318,
+    "spearman_p": 3.86e-09,
+    "pearson_r": 0.41,
+    "pearson_p": 1.36e-13,
+    "mean_latency_ms": 8782.6,
+    "mean_groundedness": 0.7936,
+    "spearman_rho_ci95": [
+      0.217,
+      0.4373
+    ]
+  },
+  "rho_difference_b_minus_a": {
+    "point": 0.016,
+    "ci95": [
+      -0.053,
+      0.1008
+    ],
+    "excludes_zero": false
+  },
+  "per_model_ci_overlap": true,
+  "agreement": {
+    "mean_abs_groundedness_delta": 0.0694,
+    "inter_model_spearman": 0.7784
+  },
+  "robust_improvement": false,
+  "conclusion": "No robust improvement: the paired rho-difference 95% CI includes 0, so the large model's apparent edge is within sampling noise."
+}
