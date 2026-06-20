@@ -1,0 +1,21 @@
+{
+  "task": "same_sample_comparison",
+  "n_matched": 396,
+  "human_consistency_mismatches": 0,
+  "scroot_groundedness": {
+    "spearman_rho": 0.4017,
+    "spearman_p": 8.67e-17,
+    "pearson_r": 0.3901,
+    "pearson_p": 7.6e-16
+  },
+  "deepeval_faithfulness_gpt4o_mini": {
+    "spearman_rho": 0.2769,
+    "spearman_p": 2.1e-08,
+    "pearson_r": 0.2393,
+    "pearson_p": 1.45e-06
+  },
+  "scroot_full_1600_reference": {
+    "spearman_rho": 0.3594,
+    "n": 1600
+  }
+}
