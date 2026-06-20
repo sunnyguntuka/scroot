@@ -16,8 +16,14 @@
 | Runs offline | **Yes** | No | No | Partial |
 | Per-dimension accuracy proof | **Yes** | No | No | No |
 
-> Results measured June 2026. Competitor figures are reference numbers from internal runs on equivalent hardware.
-> `*` = internally evaluated on NQ-500 perturbation dataset.
+> Results measured June 2026. Competitor figures in this glance table are
+> indicative reference numbers from internal runs on equivalent hardware, not
+> the same-sample SummEval study. For the **measured, apples-to-apples**
+> faithfulness comparison (identical 396 samples, p-values, determinism, cost),
+> see *Competitor comparison* below — there scroot groundedness rho = 0.40 beats
+> DeepEval (0.28); RAGAS (0.64) is higher but non-deterministic and paid; and
+> **TruthScore is formally excluded** (it is an LLM-driven RAGAS reimplementation,
+> not LLM-free). `*` = internally evaluated on NQ-500 perturbation dataset.
 
 ---
 
@@ -91,20 +97,36 @@ the generic "Summarize the following article" query makes that dimension inappli
 
 ### Competitor comparison (faithfulness / groundedness vs human consistency)
 
-| Tool | Spearman rho | Pearson r | Latency | Cost/eval | API required | n |
-|:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **scroot groundedness** | **0.36** | **0.41** | **8,588 ms** | **$0.00** | **No** | 1,600 |
-| SummaC (NLI-based) | ~0.30–0.40 | — | n/a | $0.00 | No | published |
-| FactCC (NLI-based) | ~0.25–0.35 | — | n/a | $0.00 | No | published |
-| DeepEval (GPT-4o-mini) | 0.28 | 0.24 | 8,002 ms | $0.000040 | Yes | 396 |
-| RAGAS | — | — | — | — | Yes | 0 |
+**Same-sample comparison (identical 396 samples, all tools).** The three tools
+below are evaluated on the *exact same* 396 (doc_id, summary_idx) pairs DeepEval
+scored — apples-to-apples, p-values on every correlation:
 
-> Measured June 2026. DeepEval on 400-sample stratified subset (80/quintile × 5 tiers);
-> RAGAS skipped (ragas 0.4.3 incompatible with installed langchain 1.x stack).
-> scroot groundedness (ρ=0.36) exceeds DeepEval GPT-4o-mini (ρ=0.28) at zero cost and
-> 100% determinism. LLM-as-judge tools typically reach ρ=0.50–0.65 on this task with
-> larger models (GPT-4, Claude) at ~$0.02/sample.
-> Full results: `benchmarks/results/summeval_competitors.json`
+| Tool | Type | Spearman rho | Pearson r | Latency/sample | Cost/eval | Determ. | n |
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **scroot groundedness** | LLM-free NLI | **0.40** | **0.39** | 8,588 ms | **$0.00** | **Yes (100%)** | 396 |
+| RAGAS faithfulness | LLM judge (gpt-4o-mini) | 0.64 | 0.73 | ~390 ms* | $0.00052 | No | 396 |
+| DeepEval faithfulness | LLM judge (gpt-4o-mini) | 0.28 | 0.24 | 8,002 ms | $0.000040 | No | 396 |
+| TruthScore | (excluded) | — | — | — | — | — | — |
+
+> Measured June 2026, all p < 0.001. The 396-sample set = the samples DeepEval
+> successfully scored (4 of 400 stratified samples lost to gpt-4o-mini timeouts);
+> scroot and RAGAS aligned to the same set (0 human-consistency mismatches).
+> On identical samples scroot groundedness rho = **0.40** beats DeepEval (0.28)
+> at zero cost and 100% determinism. **RAGAS faithfulness scores higher
+> (rho = 0.64)** but is non-deterministic, API-dependent, and ~$0.21/396 —
+> scroot remains the best *LLM-free, deterministic, zero-cost* faithfulness
+> scorer. *RAGAS latency is wall-clock/N over a batched parallel call, not
+> serial; treat cross-tool latency as indicative.
+> **TruthScore excluded:** the `truthscore` PyPI package is an LLM-driven
+> reimplementation of RAGAS FactualCorrectness (depends on `ragas`), not LLM-free
+> and redundant with the RAGAS row (see `benchmarks/results/truthscore_exclusion.md`).
+> RAGAS runs via an isolated venv pinned to ragas==0.4.3 + langchain 0.2.x
+> (the main env's langchain 1.x is incompatible).
+> Reference: scroot's full-1600 groundedness rho is 0.36; the 0.40 above is the
+> same-sample (396) figure. Full results:
+> `benchmarks/results/paper_comparison_final.md`,
+> `benchmarks/results/same_sample_comparison.json`,
+> `benchmarks/results/ragas_matched.json`.
 
 **Note on IQS and summarization:** scroot IQS is designed for RAG question-answering where
 a specific query is available. On summarization tasks with a generic query, the completeness
@@ -132,17 +154,23 @@ completeness are never gated. Reproduce with
 
 ### NLI backbone A/B (groundedness)
 
-Groundedness accepts any NLI cross-encoder via `Auditor(nli_model=...)`. On a
-60-sample stratified SummEval subset (groundedness-only, `top_k_premises=8`):
+Groundedness accepts any NLI cross-encoder via `Auditor(nli_model=...)`.
+**Powered A/B** on a 300-sample stratified SummEval subset (groundedness-only,
+`top_k_premises=8`) with 95% bootstrap CIs (1,000 paired resamples):
 
-| NLI model | rho vs human consistency | Mean latency |
-|:---|:---:|:---:|
-| `nli-deberta-v3-base` (default) | 0.268 | 2,089 ms |
-| **`nli-deberta-v3-large`** | **0.362** | 6,169 ms |
+| NLI model | rho vs human consistency | 95% CI | Mean latency |
+|:---|:---:|:---:|:---:|
+| `nli-deberta-v3-base` (default) | 0.316 | [0.186, 0.429] | 2,651 ms |
+| `nli-deberta-v3-large` | 0.332 | [0.217, 0.437] | 8,783 ms |
 
-The large model is a meaningfully better faithfulness backbone (+0.09 rho) at
-~3× the latency. Inter-model rank agreement is rho=0.74. Reproduce with
-`python benchmarks/bench_model_ab.py`.
+The paired rho difference (large − base) is **+0.016, 95% CI [−0.053, 0.101] —
+includes zero**, so the large model is **not a robust improvement** at this
+power; its CI overlaps base's and it costs ~3.3× the latency. (An earlier
+60-sample run suggested +0.09 rho, but that was underpowered — with 300 samples
+and CIs the gap collapses into noise.) **Recommendation: keep base as the
+default**; large remains an opt-in via `Auditor(nli_model=...)`. Reproduce with
+`python benchmarks/bench_model_ab_powered.py` (artifact:
+`benchmarks/results/model_ab_powered.md`).
 
 ---
 
