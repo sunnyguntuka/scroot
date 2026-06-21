@@ -49,22 +49,23 @@ Zero cost. Deterministic. 100% coverage.
   <img src="https://cdn.jsdelivr.net/gh/sunnyguntuka/scroot@main/assets/readme_approach_comparison.svg" alt="LLM-as-judge approach sends each response to GPT for evaluation; scroot scores locally using NLI cross-encoders and embedding similarity with no API call" width="680">
 </p>
 
-| Feature | scroot | DeepEval | RAGAS | TruthScore |
+| Feature | scroot (MiniCheck) | scroot (deberta) | RAGAS | DeepEval |
 |---|---|---|---|---|
-| Human correlation (SummEval, groundedness vs consistency) | **0.36** | — | — | — |
-| Quality discrimination (NQ-500, binary AUC A0 vs A4) | **0.865** | — | — | — |
-| Cost per eval | **$0.00** | $0.01–0.05 | $0.01–0.05 | Requires LLM |
-| Latency (CPU, RAG context) | **595ms** | ~3.4s | ~4.1s | ~2.8s |
-| LLM call required | **No** | Yes | Yes | Yes (claim decomposition) |
-| Deterministic | **Yes** | No | No | No |
-| Runs offline | **Yes** | No | No | Partial (Ollama) |
-| Feedback loop | **Yes** | No | No | No |
-| Metrics | **5 + composite** | 50+ (LLM-judged) | 4 (LLM-judged) | 1 |
+| Human correlation — SummEval Spearman ρ | **0.47** | **0.43** | 0.64 | 0.28 |
+| Hallucination discrimination — NQ-500 AUC | **0.991** | **0.875** | — | — |
+| Cost per eval | **$0.00** | **$0.00** | ~$0.00052 | ~$0.00004 |
+| Latency p50 (full pipeline, CPU) | ~4.8s | ~3.2s | ~0.5s + API | ~8s |
+| LLM call required | **No** | **No** | Yes | Yes |
+| Deterministic | **Yes** | **Yes** | No | No |
+| Runs offline | **Yes** | **Yes** | No | No |
+| Feedback loop | **Yes** | **Yes** | No | No |
+| Metrics | **5 + composite** | **5 + composite** | 4 (LLM-judged) | 50+ (LLM-judged) |
 
-> Latency measured on Intel i7 CPU with cached models. Full benchmark:
-> `python -m benchmarks.run_all --only speed`
+> All numbers measured on the same 396 SummEval samples with the same human annotations.
+> p-values all < 0.001. Latency on Intel i7 CPU, warm cache, n=380.
+> TruthScore excluded: it is an LLM-driven RAGAS reimplementation, not LLM-free.
 
-> See [BENCHMARKS.md](BENCHMARKS.md) for the full benchmark report, including methodology and per-dimension breakdowns.
+**See [BENCHMARKS.md](BENCHMARKS.md) for full methodology, reproducible commands, negative results, and the bug-finding history.**
 
 
 ## Quick start
