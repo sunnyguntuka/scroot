@@ -124,14 +124,16 @@ human **consistency** annotation. Same hardware, same human annotations, same ev
 
 | Tool | Type | Spearman ρ | Pearson r | p | Latency/sample | Cost/sample | Deterministic | n |
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **scroot (MiniCheck)** | LLM-free NLI | **0.47** | **0.52** | <0.001 | ~12.4s* | **$0.00** | **Yes** | 396 |
-| **scroot (deberta)** | LLM-free NLI | **0.43** | **0.40** | <0.001 | ~5.1s* | **$0.00** | **Yes** | 396 |
+| **scroot (MiniCheck)** | LLM-free NLI | **0.47** | **0.52** | <0.001 | ~8.4s* | **$0.00** | **Yes** | 396 |
+| **scroot (deberta)** | LLM-free NLI | **0.43** | **0.40** | <0.001 | ~4.8s* | **$0.00** | **Yes** | 396 |
 | RAGAS faithfulness | LLM judge (gpt-4o-mini) | 0.64 | 0.73 | <0.001 | ~390ms† | $0.00052 | No | 396 |
 | DeepEval faithfulness | LLM judge (gpt-4o-mini) | 0.28 | 0.24 | <0.001 | ~8,002ms | $0.00004 | No | 396 |
 | TruthScore | (excluded — see note) | — | — | — | — | — | — | — |
 
-\* Groundedness-harness latency (Exp A, groundedness dimension only). Full-pipeline means
-(all 5 IQS dimensions): deberta 4,810ms, MiniCheck 8,422ms.
+\* Full-pipeline p50 latency (all 5 IQS dimensions), matching Table 4 and the paper.
+Groundedness-harness latency (Exp A, groundedness only) is higher (MiniCheck ~12.4s,
+deberta ~5.1s) because Exp A scores groundedness on every premise without composite
+short-circuiting.
 
 † RAGAS latency is wall-clock/N over a batched parallel `evaluate()` call — not a serial
 per-sample figure. It understates RAGAS's true per-request cost; treat cross-tool latency as
@@ -442,8 +444,10 @@ is never gated.
 NQ-500 AUC preservation: 0.8651 → 0.8625 (within rounding; gate requirement ≥ 0.85 still
 PASS). Groundedness and consistency are never gated; only relevance was gated on SummEval.
 
-The fix is opt-in: `Auditor()` (default) is unchanged. Only
-`Auditor(gate_inapplicable_dimensions=True)` activates gating.
+As of v0.4.0, gating is **on by default**: `Auditor()` activates
+`gate_inapplicable_dimensions=True`. Set
+`Auditor(gate_inapplicable_dimensions=False)` to restore the pre-fix
+behaviour (all dimensions scored unconditionally).
 
 Artifact: `benchmarks/results/composite_fix_validation.md`
 
@@ -514,7 +518,7 @@ python benchmarks/bench_composite_fix_validate.py
 | CPU | Intel Core i7 (single thread) |
 | OS | Windows 11 Pro 10.0.26200 |
 | Python | 3.11 |
-| scroot | 0.3.1 |
+| scroot | 0.4.1 |
 | sentence-transformers | 4.x |
 | transformers | 4.x |
 | NLI model (fast) | cross-encoder/nli-deberta-v3-base (184M) |
@@ -556,4 +560,4 @@ A preprint citation will be added here once the arXiv paper is submitted.
 
 ---
 
-*scroot v0.3.1 · Apache-2.0 · [github.com/sunnyguntuka/scroot](https://github.com/sunnyguntuka/scroot)*
+*scroot v0.4.1 · Apache-2.0 · [github.com/sunnyguntuka/scroot](https://github.com/sunnyguntuka/scroot)*
