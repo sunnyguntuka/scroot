@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="assets/scroot-github-banner-final.png" alt="scroot - Quality scoring for AI responses. Local. Deterministic. LLM-free." width="100%">
+  <img src="assets/scroot-github-banner-final.png" alt="scroot - Deterministic quality scoring for AI responses. No judge model. No API. No cost." width="100%">
 </p>
 
 <h1 align="center">scroot</h1>
 
-<h3 align="center">LLM-free response quality scoring</h3>
-<p align="center">Grade every response. No second LLM call. Zero cost. Deterministic.</p>
+<h3 align="center">Deterministic quality scoring for LLM responses</h3>
+<p align="center">Same input, same score, every time — no judge model, no API, no cost.</p>
 
 <p align="center">
   <a href="https://pypi.org/project/scroot/">
@@ -36,8 +36,8 @@
 ## Why scroot?
 
 Teams deploying LLM agents and RAG systems can't manually review
-every response. Existing tools use LLM-as-judge - a second LLM
-call per evaluation - which costs $0.01–0.05/eval, takes 2–5s,
+every response. Existing tools use a judge model — a second LLM
+call per evaluation — which costs $0.01–0.05/eval, takes 2–5s,
 and gives non-deterministic results. **scroot** scores every
 response locally using NLI models and embedding similarity.
 Zero cost. Deterministic. 100% coverage.
@@ -49,23 +49,20 @@ Zero cost. Deterministic. 100% coverage.
   <img src="https://cdn.jsdelivr.net/gh/sunnyguntuka/scroot@main/assets/readme_approach_comparison.svg" alt="LLM-as-judge approach sends each response to GPT for evaluation; scroot scores locally using NLI cross-encoders and embedding similarity with no API call" width="680">
 </p>
 
-| Feature | scroot (MiniCheck) | scroot (deberta) | RAGAS | DeepEval |
+| Capability | scroot (default) | scroot (fast) | RAGAS | DeepEval |
 |---|---|---|---|---|
-| Human correlation — SummEval Spearman ρ | **0.47** | **0.43** | 0.64 | 0.28 |
-| Hallucination discrimination — NQ-500 AUC | **0.991** | **0.875** | — | — |
-| Cost per eval | **$0.00** | **$0.00** | ~$0.00052 | ~$0.00004 |
-| Latency p50 (full pipeline, CPU) | ~4.8s | ~3.2s | ~0.5s + API | ~8s |
-| LLM call required | **No** | **No** | Yes | Yes |
-| Deterministic | **Yes** | **Yes** | No | No |
-| Runs offline | **Yes** | **Yes** | No | No |
-| Feedback loop | **Yes** | **Yes** | No | No |
-| Metrics | **5 + composite** | **5 + composite** | 4 (LLM-judged) | 50+ (LLM-judged) |
+| Hallucination detection (AUC) | **0.991** | 0.875 | — | — |
+| Human correlation (ρ) | **0.47** | 0.43 | 0.64 | 0.28 |
+| Deterministic | **Yes (0/5,400)** | **Yes** | No | No |
+| Cost per eval | **$0.00** | **$0.00** | ~$0.0005 | ~$0.00004 |
+| Offline / air-gapped | **Yes** | **Yes** | No | No |
+| Latency (p50) | ~4.8s | ~3.2s | API-dependent | ~8s |
 
-> All numbers measured on the same 396 SummEval samples with the same human annotations.
-> p-values all < 0.001. Latency on Intel i7 CPU, warm cache, n=380.
-> TruthScore excluded: it is an LLM-driven RAGAS reimplementation, not LLM-free.
+> All tools benchmarked on identical 396 SummEval samples with expert human consistency
+> annotations. p-values all < 0.001. Latency on Intel i7 CPU, warm cache, n=380.
+> "scroot (fast)" = `Auditor(groundedness_backbone="deberta-base")`.
 
-**See [BENCHMARKS.md](BENCHMARKS.md) for full methodology, reproducible commands, negative results, and the bug-finding history.**
+**See [BENCHMARKS.md](BENCHMARKS.md) for full methodology, reproducibility instructions, and detailed results.**
 
 
 ## Quick start
@@ -340,20 +337,29 @@ This is the same data shown in the Review Console's Evidence Map panel
 for the full `to_dict()` shape.
 
 
-## No LLM anywhere
+## No judge model. Ever.
 
-Unlike every competitor, **scroot** uses zero LLM calls:
+Unlike every competitor, **scroot** requires no judge model or API call:
 
-- **No LLM for judging** - NLI cross-encoders evaluate entailment,
+- **No judge for scoring** - NLI cross-encoders evaluate entailment,
   not GPT-4
 - **No LLM for claim extraction** - deterministic regex and sentence
   splitting, not a second model call
 - **No LLM for scoring** - embedding similarity, not generated text
 - **No API key required** - works offline, air-gapped, on a laptop
 
-The only neural models used are a 350 MB NLI cross-encoder
-(DeBERTa-v3-base) and a 90 MB sentence embedding model
-(all-MiniLM-L6-v2). Both run locally on CPU or GPU.
+The default backbone is MiniCheck-RoBERTa-Large (355 MB) for best
+accuracy. Switch to the fast deberta backbone (184 MB) for lower latency:
+
+```python
+# Default: MiniCheck-RoBERTa-Large (best accuracy, AUC 0.991)
+auditor = Auditor()
+
+# Fast mode: deberta-v3-base (lower latency, AUC 0.875)
+auditor = Auditor(groundedness_backbone="deberta-base")
+```
+
+Both run fully locally on CPU or GPU after a one-time model download.
 
 
 ## Configuration
@@ -670,21 +676,23 @@ Use `device="cuda"` for GPU acceleration.
 | `score()`, 50 context chunks | **5.4s** | Batched NLI |
 | `score_batch(100)` | **59s** (~593ms/item) | Sequential |
 
-> GPU latency estimated at 10–50ms per response with preloaded models.
-> First call includes model download (~440 MB); subsequent calls use cache.
+> First call includes model download; subsequent calls use cache.
+> Full pipeline p50 latency: ~4.8s (MiniCheck default), ~3.2s (deberta fast).
+> See [BENCHMARKS.md](BENCHMARKS.md) for full latency breakdown by input type.
 
 
 ## Model downloads
 
 | Component | Size | When downloaded |
 |---|---|---|
-| NLI cross-encoder (`cross-encoder/nli-deberta-v3-base`) | ~350 MB | First `auditor.score()` call with context |
+| MiniCheck-RoBERTa-Large (default backbone) | ~355 MB | First `auditor.score()` call with context |
+| deberta-v3-base (fast backbone) | ~184 MB | First `auditor.score()` call with `groundedness_backbone="deberta-base"` |
 | Sentence embedding model (`all-MiniLM-L6-v2`) | ~90 MB | First `auditor.score()` call |
 | Local LLM corrector - default (`Qwen2.5-3B-Instruct`) | ~2.0 GB | `pip install scroot[local]` then `scroot download-model` |
 | Local LLM corrector - compact (`Qwen2.5-1.5B-Instruct`) | ~1.0 GB | `scroot download-model --model smollm3` |
 
-`pip install scroot` only ever downloads the ~440 MB scoring models
-(NLI cross-encoder + embedding model), and only on first use. The local
+`pip install scroot` only downloads the scoring models on first use
+(~445 MB for MiniCheck default, or ~274 MB for deberta fast). The local
 LLM corrector is a separate, strictly opt-in download via
 `scroot[local]` - it is never triggered by a base install.
 
@@ -759,3 +767,21 @@ See [CHANGELOG.md](CHANGELOG.md).
 ## License
 
 Apache-2.0 - see [LICENSE](LICENSE).
+
+
+## Citation
+
+```bibtex
+@software{scroot2026,
+  title  = {scroot: Deterministic Response Quality Scoring},
+  author = {Guntuka, Sunny},
+  year   = {2026},
+  url    = {https://github.com/sunnyguntuka/scroot},
+  note   = {Apache-2.0}
+}
+```
+
+---
+
+"scroot" and the owl-eyes logo are trademarks of Sunny Guntuka.
+See [TRADEMARK.md](TRADEMARK.md).

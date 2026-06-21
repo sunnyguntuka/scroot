@@ -33,8 +33,8 @@ research evaluation where correlation is everything and cost is no object.
 
 **Backbone options:**
 ```python
-Auditor()                                                    # deberta-base (fast, default)
-Auditor(groundedness_backbone="minicheck-roberta-large")     # MiniCheck-RoBERTa (high-accuracy)
+Auditor()                                                    # MiniCheck-RoBERTa (default, best accuracy)
+Auditor(groundedness_backbone="deberta-base")                # deberta-base (fast mode)
 ```
 
 ---

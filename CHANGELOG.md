@@ -9,6 +9,54 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-21
+
+### Breaking changes
+
+- **Default groundedness backbone changed** from `deberta-v3-base` to
+  `MiniCheck-RoBERTa-Large`. Use `Auditor(groundedness_backbone="deberta-base")`
+  to restore the previous behaviour. MiniCheck achieves AUC 0.991 vs 0.875 for
+  deberta on NQ-500 hallucination discrimination; 1.75× mean latency cost.
+- **Applicability gating is now ON by default** (`gate_inapplicable_dimensions=True`).
+  Dimensions that are structurally inapplicable to a task (e.g. relevance on a
+  generic "Summarize…" query) are excluded from IQS rather than collapsing the
+  harmonic mean. Pass `Auditor(gate_inapplicable_dimensions=False)` to restore
+  the previous behaviour.
+- **Top-k premise pre-filtering is now ON by default** (`top_k_premises=5`). Pre-ranks
+  NLI premises by embedding similarity and keeps the top 5 per claim, giving ~3.5×
+  speedup on long-document contexts with 0.000 score delta. Pass
+  `Auditor(top_k_premises=None)` to disable.
+
+### New features
+
+- **Selectable groundedness backbone**: `Auditor(groundedness_backbone=...)` accepts
+  `"minicheck-roberta-large"` (default) or `"deberta-base"` (fast). Factory function
+  `get_groundedness_backbone(name, device)` in `scroot.models`.
+- **Applicability gating**: `Auditor(gate_inapplicable_dimensions=True)` detects and
+  excludes structurally inapplicable IQS dimensions. `result.inapplicable_dimensions`
+  lists gated dimensions for transparency.
+- **Top-k premise pre-filtering**: `Auditor(top_k_premises=k)` — pre-ranks NLI premises
+  by embedding similarity before the cross-encoder runs. Lossless on NQ-500 (0.000 MAD
+  vs unfiltered). See `benchmarks/results/topk_optimization.md`.
+
+### Bug fixes
+
+- **Groundedness: sentence-split context before NLI inference.** The NLI cross-encoder
+  degrades to near-zero entailment when the premise is a full paragraph (known limitation).
+  Fixed by sentence-splitting each context chunk before building NLI pairs. Effect:
+  A0 mean groundedness 0.461 → 0.983.
+- **Confidence: "May" month no longer matches as a hedge word.** The `\bmay\b` hedge
+  pattern matched "May 18" (a date), scoring confident factual dates as hedged.
+  Fixed with a negative lookahead: `\bmay\b(?!\s*\d)`.
+
+### Benchmarks (v0.4.0 default)
+
+- **Hallucination discrimination**: AUC 0.991 (MiniCheck) — near-perfect, deterministic, $0.
+- **Human correlation**: Spearman ρ 0.47 on SummEval (same 396 samples as RAGAS and
+  DeepEval). Beats DeepEval (ρ 0.28); RAGAS leads at ρ 0.64 (LLM judge, non-deterministic).
+- **Determinism**: 5,400+ checks, 0 deviations, end-to-end through `Auditor.score()`.
+- Full methodology and reproducibility: see [BENCHMARKS.md](BENCHMARKS.md).
+
 ## [0.2.0] - 2026-06-12
 
 First release since 0.1.0. Bundles the Context Builder, Review Console
