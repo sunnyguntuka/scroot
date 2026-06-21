@@ -1,0 +1,23 @@
+{
+  "summeval": {
+    "n": 1600,
+    "n_relevance_gated": 1600,
+    "old_iqs_rho": 0.11720006729092437,
+    "old_p": 2.5946632505120113e-06,
+    "new_iqs_rho": 0.2482622211430079,
+    "new_p": 6.706944818152199e-24
+  },
+  "nq500": {
+    "n": 2500,
+    "n_relevance_gated": 380,
+    "n_consistency_gated": 0,
+    "old_auc_a0_vs_a4": 0.8651,
+    "new_auc_a0_vs_a4": 0.8625,
+    "old_mean_iqs_a0": 0.5625,
+    "new_mean_iqs_a0": 0.5717
+  },
+  "gates": {
+    "summeval_gated_iqs_improves_p_lt_0.01": true,
+    "nq_auc_ge_0.85": true
+  }
+}

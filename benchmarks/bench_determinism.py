@@ -28,8 +28,19 @@ import sys
 import time
 from pathlib import Path
 
+# Prevent benchmarks/ (which contains a datasets/ package) from shadowing the
+# HuggingFace `datasets` package that sentence-transformers imports. Other bench
+# scripts do this; bench_determinism.py historically did not, so running it with
+# the project root or benchmarks/ on sys.path broke `from datasets import Dataset`.
+_bench_dir = str(Path(__file__).parent)
+while _bench_dir in sys.path:
+    sys.path.remove(_bench_dir)
+_src_dir = str(Path(__file__).parent.parent / "src")
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 RESULTS_DIR = Path(__file__).parent / "results"
-DEFAULT_DATASET = Path(__file__).parent / "datasets" / "nq_500.jsonl"
+DEFAULT_DATASET = Path(__file__).parent / "datasets" / "nq_500_perturbed.jsonl"
 
 N_EXAMPLES = 100
 N_RUNS = 10
@@ -53,14 +64,28 @@ def _load_examples(path: Path, n: int) -> list[dict]:
             if not line:
                 continue
             ex = json.loads(line)
-            # Use the A0 (highest quality) response for determinism testing
-            p = ex["perturbations"]["A0"]
-            examples.append({
-                "id": ex["id"],
-                "query": ex["question"],
-                "response": p["response"],
-                "context": [ex["context"]],
-            })
+            # Two dataset schemas are supported:
+            #  (a) legacy nested: {"question", "context", "perturbations":{"A0":{"response"}}}
+            #  (b) current flat one-row-per-(id,level):
+            #      {"id","query","context","response","perturbation_level"}
+            # For (b) we keep only the clean A0 rows (perturbation_level == 0)
+            # to mirror the legacy "highest-quality response" choice.
+            if "perturbations" in ex:
+                examples.append({
+                    "id": ex["id"],
+                    "query": ex.get("question", ex.get("query", "")),
+                    "response": ex["perturbations"]["A0"]["response"],
+                    "context": [ex["context"]],
+                })
+            else:
+                if ex.get("perturbation_level", 0) != 0:
+                    continue
+                examples.append({
+                    "id": ex["id"],
+                    "query": ex.get("query", ex.get("question", "")),
+                    "response": ex["response"],
+                    "context": [ex["context"]],
+                })
             if len(examples) >= n:
                 break
     return examples

@@ -103,6 +103,7 @@ class Auditor:
         similarity_fallback: bool = True,
         similarity_threshold: float = 0.82,
         top_k_chunks: int = 3,
+        top_k_premises: int | None = None,
         bidirectional_consistency: bool = True,
         nli_completeness: bool = True,
         max_query_length: int = 10_000,
@@ -122,6 +123,8 @@ class Auditor:
         compute_numeric_groundedness: bool = True,
         flag_thresholds: dict | None = None,
         keep_intermediates: bool = False,
+        gate_inapplicable_dimensions: bool = False,
+        groundedness_backbone: str = "deberta-base",
     ):
         self.nli_model = nli_model
         self.embedding_model = embedding_model
@@ -132,6 +135,7 @@ class Auditor:
         self.similarity_fallback = similarity_fallback
         self.similarity_threshold = similarity_threshold
         self.top_k_chunks = top_k_chunks
+        self.top_k_premises = top_k_premises
         self.bidirectional_consistency = bidirectional_consistency
         self.nli_completeness = nli_completeness
         self.max_query_length = max_query_length
@@ -151,6 +155,9 @@ class Auditor:
         self.compute_numeric_groundedness = compute_numeric_groundedness
         self.flag_thresholds = flag_thresholds
         self.keep_intermediates = keep_intermediates
+        self.gate_inapplicable_dimensions = gate_inapplicable_dimensions
+        self.groundedness_backbone = groundedness_backbone
+        self._backbone_scorer = None  # loaded lazily on first score() call
 
     def score(
         self,
@@ -223,6 +230,12 @@ class Auditor:
                 context = None
                 chunk_sources = None
 
+        # Lazy-load the groundedness backbone on first call.
+        if self._backbone_scorer is None and self.groundedness_backbone != "deberta-base":
+            from .models import get_groundedness_backbone
+            self._backbone_scorer = get_groundedness_backbone(
+                self.groundedness_backbone, self.device)
+
         _debug_timing = os.environ.get("SCROOT_DEBUG_TIMING") == "1"
         _t0 = time.perf_counter() if _debug_timing else 0.0
 
@@ -246,6 +259,8 @@ class Auditor:
                     similarity_fallback=self.similarity_fallback,
                     similarity_threshold=self.similarity_threshold,
                     top_k_chunks=self.top_k_chunks,
+                    top_k_premises=self.top_k_premises,
+                    backbone_scorer=self._backbone_scorer,
                 )
                 details["groundedness"] = g_details
                 _elapsed("groundedness")
@@ -372,6 +387,23 @@ class Auditor:
                     logger.warning("custom metric %r failed: %s", name, exc)
             if custom_scores:
                 details["custom_metrics"] = custom_scores
+
+        # Applicability gating: when a dimension is structurally inapplicable to
+        # the task (e.g. relevance under a generic "summarise this" query, or
+        # consistency on a single-sentence response), set its score to None so
+        # compute_iqs_detailed excludes it and renormalises the remaining
+        # weights, rather than letting a pathologically low non-signal collapse
+        # IQS via the harmonic mean. Opt-in (default off) to preserve existing
+        # behaviour. groundedness/completeness are never gated.
+        if self.gate_inapplicable_dimensions:
+            from .applicability import inapplicable_dimensions
+            gated = inapplicable_dimensions(query, response)
+            # Never gate every dimension away; keep at least groundedness.
+            for dim in gated:
+                if dim in iqs_scores:
+                    iqs_scores[dim] = None
+            if gated:
+                details["gated_dimensions"] = sorted(gated)
 
         merged_weights = {**(self.weights or {}), **custom_weights} or None
         iqs, effective_weights = compute_iqs_detailed(

@@ -1,0 +1,36 @@
+Powered model A/B on 300 stratified SummEval samples (groundedness only, top_k_premises=8)
+
+  A: cross-encoder/nli-deberta-v3-base
+    nli-deberta-v3-base 25/300  0.28/s  eta 16.3m
+    nli-deberta-v3-base 50/300  0.34/s  eta 12.1m
+    nli-deberta-v3-base 75/300  0.38/s  eta 9.9m
+    nli-deberta-v3-base 100/300  0.38/s  eta 8.8m
+    nli-deberta-v3-base 125/300  0.35/s  eta 8.3m
+    nli-deberta-v3-base 150/300  0.35/s  eta 7.2m
+    nli-deberta-v3-base 175/300  0.35/s  eta 6.0m
+    nli-deberta-v3-base 200/300  0.35/s  eta 4.7m
+    nli-deberta-v3-base 225/300  0.36/s  eta 3.5m
+    nli-deberta-v3-base 250/300  0.37/s  eta 2.2m
+    nli-deberta-v3-base 275/300  0.37/s  eta 1.1m
+    nli-deberta-v3-base 300/300  0.38/s  eta 0.0m
+  B: cross-encoder/nli-deberta-v3-large
+    nli-deberta-v3-large 25/300  0.12/s  eta 37.9m
+    nli-deberta-v3-large 50/300  0.11/s  eta 37.7m
+    nli-deberta-v3-large 75/300  0.12/s  eta 30.7m
+    nli-deberta-v3-large 100/300  0.12/s  eta 28.5m
+    nli-deberta-v3-large 125/300  0.12/s  eta 24.6m
+    nli-deberta-v3-large 150/300  0.12/s  eta 20.4m
+    nli-deberta-v3-large 175/300  0.12/s  eta 17.1m
+    nli-deberta-v3-large 200/300  0.11/s  eta 14.5m
+    nli-deberta-v3-large 225/300  0.11/s  eta 11.2m
+    nli-deberta-v3-large 250/300  0.11/s  eta 7.3m
+    nli-deberta-v3-large 275/300  0.11/s  eta 3.7m
+    nli-deberta-v3-large 300/300  0.11/s  eta 0.0m
+
+=== POWERED MODEL A/B ===
+  A base  rho=+0.3158 CI[0.186,0.429]  lat=2651ms
+  B large rho=+0.3318 CI[0.217,0.437]  lat=8783ms
+  diff (B-A)=+0.0160 CI[-0.053,0.101] excludes_zero=False
+  per-model CIs overlap: True
+  -> No robust improvement: the paired rho-difference 95% CI includes 0, so the large model's apparent edge is within sampling noise.
+Saved -> C:\Users\sunny\Documents\scroot\benchmarks\results\model_ab_powered.json

@@ -53,6 +53,8 @@ src/scroot/ui/.vite/
 
 # Dev tooling / screenshots
 .venv_bench/
+.ragas-env/
+.deepeval/
 browser-screenshots/
 
 # Vector / agent DB files
