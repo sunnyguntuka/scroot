@@ -117,9 +117,21 @@ moved the needle.
   across all three backbones.
 - **Air-gap:** All models run fully local after one-time HuggingFace download.
   $0 API cost.
-- **NQ-500 AUC:** Not re-run in this sprint (backbone swap only affects
-  groundedness, not the NLI scoring path used for NQ-500 which uses deberta).
-  Recommend verifying AUC ≥ 0.85 before promoting a new backbone to default.
+- **NQ-500 AUC (discrimination gate):** Verified on branch
+  `bench/minicheck-nq500-gate` (commit `dcb2bb7`). Full 2,500-record run
+  with both backbones using the same groundedness harness:
+
+  | Metric | deberta-base | MiniCheck-RoBERTa-L | Gate |
+  |---|---|---|---|
+  | AUC (A0 vs A4) | 0.8748 | **0.9910** | ≥ 0.85 **PASS** |
+  | AUC (A0 vs A3) | 0.9684 | 0.9668 | — |
+  | Spearman ρ | -0.6928 | -0.8631 | — |
+  | Binary accuracy | 0.8760 | 0.9910 | — |
+  | Mean separation | 0.7464 | 0.9788 | — |
+  | Determinism | 0 dev | 0 dev | required |
+
+  MiniCheck-RoBERTa-Large **improves** hallucination discrimination
+  (AUC 0.875 → 0.991) in addition to SummEval correlation. Gate: **PASS**.
 - **Models that couldn't load:** None — all three backbones loaded and ran
   to completion. AlignScore and Bespoke-MiniCheck-7B were not tested (not
   installed; documented skip per spec).
