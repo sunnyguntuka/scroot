@@ -54,6 +54,7 @@ def score_groundedness(
     top_k_chunks: int = 3,
     top_k_premises: int | None = None,
     _capture: "dict | None" = None,
+    backbone_scorer=None,
 ) -> tuple[float, dict]:
     """Score how well the response is grounded in the context.
 
@@ -85,7 +86,12 @@ def score_groundedness(
         context = [context]
     context = [str(c) for c in context if c is not None]
 
-    model = get_nli_model(nli_model, device=device)
+    # backbone_scorer, when provided, bypasses the standard NLI cross-encoder.
+    # It must expose score_pairs(pairs) -> list[float] returning P(supported)
+    # directly (no softmax needed). Similarity fallback is skipped for
+    # alternative backbones — it is tuned for the deberta uncertain-zone.
+    _use_backbone = backbone_scorer is not None
+    model = None if _use_backbone else get_nli_model(nli_model, device=device)
     claims = extract_atomic_claims(response) if atomic_claims else extract_claims(response)
 
     if not claims:
@@ -174,37 +180,43 @@ def score_groundedness(
                 nli_pairs = [nli_pairs[j] for j in keep]
                 pair_chunk_idx = [pair_chunk_idx[j] for j in keep]
 
-            raw_scores = model.predict(nli_pairs)
+            if _use_backbone:
+                support_probs = backbone_scorer.score_pairs(nli_pairs)
+                best_entailment = max(support_probs) if support_probs else 0.0
+                best_contradiction = 0.0
+                best_similarity = 0.0
+            else:
+                raw_scores = model.predict(nli_pairs)
 
-            best_entailment = 0.0
-            best_contradiction = 0.0
-            best_similarity = 0.0
+                best_entailment = 0.0
+                best_contradiction = 0.0
+                best_similarity = 0.0
 
-            for pair_idx, score_row in enumerate(raw_scores):
-                probs = softmax(score_row)
-                ep = float(probs[LABEL_ENTAILMENT])
-                cp = float(probs[LABEL_CONTRADICTION])
+                for pair_idx, score_row in enumerate(raw_scores):
+                    probs = softmax(score_row)
+                    ep = float(probs[LABEL_ENTAILMENT])
+                    cp = float(probs[LABEL_CONTRADICTION])
 
-                # Bi-encoder similarity fallback in uncertain zone
-                chunk_idx = pair_chunk_idx[pair_idx]
-                if (emb_model is not None
-                        and claim_embs is not None
-                        and selected_chunk_embs is not None
-                        and similarity_fallback
-                        and _UNCERTAIN_LOW < ep < _UNCERTAIN_HIGH):
-                    sim = float(
-                        _cosine_batch(
-                            claim_embs[c_idx],
-                            selected_chunk_embs[chunk_idx:chunk_idx + 1]
-                        )[0]
-                    )
-                    best_similarity = max(best_similarity, sim)
-                    if sim >= similarity_threshold:
-                        ep = max(ep, entailment_threshold + 0.01)
+                    # Bi-encoder similarity fallback in uncertain zone
+                    chunk_idx = pair_chunk_idx[pair_idx]
+                    if (emb_model is not None
+                            and claim_embs is not None
+                            and selected_chunk_embs is not None
+                            and similarity_fallback
+                            and _UNCERTAIN_LOW < ep < _UNCERTAIN_HIGH):
+                        sim = float(
+                            _cosine_batch(
+                                claim_embs[c_idx],
+                                selected_chunk_embs[chunk_idx:chunk_idx + 1]
+                            )[0]
+                        )
+                        best_similarity = max(best_similarity, sim)
+                        if sim >= similarity_threshold:
+                            ep = max(ep, entailment_threshold + 0.01)
 
-                if ep > best_entailment:
-                    best_entailment = ep
-                    best_contradiction = cp
+                    if ep > best_entailment:
+                        best_entailment = ep
+                        best_contradiction = cp
 
             grounded = best_entailment >= entailment_threshold
             result: dict = {

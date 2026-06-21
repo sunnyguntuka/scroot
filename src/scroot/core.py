@@ -124,6 +124,7 @@ class Auditor:
         flag_thresholds: dict | None = None,
         keep_intermediates: bool = False,
         gate_inapplicable_dimensions: bool = False,
+        groundedness_backbone: str = "deberta-base",
     ):
         self.nli_model = nli_model
         self.embedding_model = embedding_model
@@ -155,6 +156,8 @@ class Auditor:
         self.flag_thresholds = flag_thresholds
         self.keep_intermediates = keep_intermediates
         self.gate_inapplicable_dimensions = gate_inapplicable_dimensions
+        self.groundedness_backbone = groundedness_backbone
+        self._backbone_scorer = None  # loaded lazily on first score() call
 
     def score(
         self,
@@ -227,6 +230,12 @@ class Auditor:
                 context = None
                 chunk_sources = None
 
+        # Lazy-load the groundedness backbone on first call.
+        if self._backbone_scorer is None and self.groundedness_backbone != "deberta-base":
+            from .models import get_groundedness_backbone
+            self._backbone_scorer = get_groundedness_backbone(
+                self.groundedness_backbone, self.device)
+
         _debug_timing = os.environ.get("SCROOT_DEBUG_TIMING") == "1"
         _t0 = time.perf_counter() if _debug_timing else 0.0
 
@@ -251,6 +260,7 @@ class Auditor:
                     similarity_threshold=self.similarity_threshold,
                     top_k_chunks=self.top_k_chunks,
                     top_k_premises=self.top_k_premises,
+                    backbone_scorer=self._backbone_scorer,
                 )
                 details["groundedness"] = g_details
                 _elapsed("groundedness")

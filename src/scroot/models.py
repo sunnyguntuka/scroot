@@ -212,3 +212,98 @@ def clear_cache() -> None:
     """Clear all cached models."""
     with _cache_lock:
         _model_cache.clear()
+
+
+# ---------------------------------------------------------------------------
+# MiniCheck backbone
+# ---------------------------------------------------------------------------
+
+class MiniCheckRobertaBackbone:
+    """MiniCheck-RoBERTa-Large binary support classifier.
+
+    Drop-in groundedness backend for score_groundedness(). score_pairs()
+    returns P(supported) directly — treated as the entailment probability.
+    Similarity fallback is skipped (not applicable to binary classifiers).
+    """
+
+    HF_NAME = "lytang/MiniCheck-RoBERTa-Large"
+    _BATCH_SIZE = 16
+
+    def __init__(self, device: str = "cpu") -> None:
+        import torch
+        from transformers import (AutoModelForSequenceClassification,
+                                  AutoTokenizer)
+        self._torch = torch
+        self._device = device
+        self._tok = AutoTokenizer.from_pretrained(self.HF_NAME)
+        self._model = (AutoModelForSequenceClassification
+                       .from_pretrained(self.HF_NAME)
+                       .to(device)
+                       .eval())
+
+    def score_pairs(self, pairs: "list[tuple[str, str]]") -> "list[float]":
+        """Return P(claim supported by premise) for each (premise, claim) pair."""
+        out: list[float] = []
+        for i in range(0, len(pairs), self._BATCH_SIZE):
+            batch = pairs[i:i + self._BATCH_SIZE]
+            docs = [p[0] for p in batch]
+            claims = [p[1] for p in batch]
+            enc = self._tok(docs, claims, truncation=True, max_length=512,
+                            padding=True, return_tensors="pt").to(self._device)
+            with self._torch.no_grad():
+                logits = self._model(**enc).logits
+                probs = self._torch.softmax(logits, dim=-1)[:, 1]
+            out.extend(probs.cpu().tolist())
+        return out
+
+
+_BACKBONE_REGISTRY: dict[str, type] = {
+    "minicheck-roberta-large": MiniCheckRobertaBackbone,
+}
+
+# Canonical names that map to the standard deberta NLI path (backbone=None)
+_DEBERTA_ALIASES: frozenset[str] = frozenset({
+    "deberta-base",
+    "cross-encoder/nli-deberta-v3-base",
+    "deberta-small",
+    "cross-encoder/nli-deberta-v3-small",
+    "deberta-large",
+    "cross-encoder/nli-deberta-v3-large",
+})
+
+
+def get_groundedness_backbone(name: str, device: str = "cpu"):
+    """Return a backbone scorer instance, or None for the deberta NLI path.
+
+    ``None`` means score_groundedness() uses its standard
+    ``get_nli_model`` / softmax / similarity-fallback path.
+    A returned object must expose ``score_pairs(pairs) -> list[float]``
+    where each float is P(claim supported by premise) in [0, 1].
+
+    Args:
+        name: Backbone identifier. ``"deberta-base"`` (and its aliases)
+            return ``None``. ``"minicheck-roberta-large"`` returns a
+            cached :class:`MiniCheckRobertaBackbone`.
+        device: Inference device passed to the backbone constructor.
+
+    Raises:
+        ValueError: If ``name`` is not a known backbone identifier.
+    """
+    if name in _DEBERTA_ALIASES:
+        return None
+
+    if name not in _BACKBONE_REGISTRY:
+        raise ValueError(
+            f"Unknown groundedness backbone {name!r}. "
+            f"Supported: {sorted(_DEBERTA_ALIASES | set(_BACKBONE_REGISTRY))}."
+        )
+
+    key = f"backbone:{name}:{device}"
+    with _cache_lock:
+        if key in _model_cache:
+            _model_cache.move_to_end(key)
+            return _model_cache[key]
+        if len(_model_cache) >= MAX_CACHE_SIZE:
+            _model_cache.popitem(last=False)
+        _model_cache[key] = _BACKBONE_REGISTRY[name](device=device)
+        return _model_cache[key]
