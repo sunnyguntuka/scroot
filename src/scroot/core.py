@@ -103,7 +103,7 @@ class Auditor:
         similarity_fallback: bool = True,
         similarity_threshold: float = 0.82,
         top_k_chunks: int = 3,
-        top_k_premises: int | None = None,
+        top_k_premises: int = 5,
         bidirectional_consistency: bool = True,
         nli_completeness: bool = True,
         max_query_length: int = 10_000,
@@ -123,8 +123,8 @@ class Auditor:
         compute_numeric_groundedness: bool = True,
         flag_thresholds: dict | None = None,
         keep_intermediates: bool = False,
-        gate_inapplicable_dimensions: bool = False,
-        groundedness_backbone: str = "deberta-base",
+        gate_inapplicable_dimensions: bool = True,
+        groundedness_backbone: str = "minicheck-roberta-large",
     ):
         self.nli_model = nli_model
         self.embedding_model = embedding_model
@@ -157,7 +157,8 @@ class Auditor:
         self.keep_intermediates = keep_intermediates
         self.gate_inapplicable_dimensions = gate_inapplicable_dimensions
         self.groundedness_backbone = groundedness_backbone
-        self._backbone_scorer = None  # loaded lazily on first score() call
+        self._backbone_scorer = None  # loaded lazily; _BACKBONE_LOADED sentinel set after first load
+        self._backbone_loaded = False
 
     def score(
         self,
@@ -231,10 +232,11 @@ class Auditor:
                 chunk_sources = None
 
         # Lazy-load the groundedness backbone on first call.
-        if self._backbone_scorer is None and self.groundedness_backbone != "deberta-base":
+        if not self._backbone_loaded:
             from .models import get_groundedness_backbone
             self._backbone_scorer = get_groundedness_backbone(
                 self.groundedness_backbone, self.device)
+            self._backbone_loaded = True
 
         _debug_timing = os.environ.get("SCROOT_DEBUG_TIMING") == "1"
         _t0 = time.perf_counter() if _debug_timing else 0.0
