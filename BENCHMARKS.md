@@ -62,11 +62,11 @@ separately against context before NLI scoring. A verbatim number match bypasses 
 uncertain zone.
 
 **Groundedness backbones:**
-- `deberta-base` (default): `cross-encoder/nli-deberta-v3-base`, 184M, 3-class NLI with
-  softmax; fast, deterministic, $0.
-- `minicheck-roberta-large` (opt-in): `lytang/MiniCheck-RoBERTa-Large`, 355M, binary support
+- `minicheck-roberta-large` (default): `lytang/MiniCheck-RoBERTa-Large`, 355M, binary support
   classifier purpose-built for factual consistency; higher correlation and discrimination,
-  1.75× latency.
+  1.75× latency vs deberta.
+- `deberta-base` (fast opt-in): `cross-encoder/nli-deberta-v3-base`, 184M, 3-class NLI with
+  softmax; fast, deterministic, $0.
 
 ---
 
@@ -141,7 +141,9 @@ indicative.
 backbone harness, which scores groundedness only on the same 396 samples. The full-pipeline
 baseline (all 5 IQS dimensions, deberta backbone) is **rho 0.40** — slightly lower because
 inapplicable dimensions (relevance on a generic "Summarize…" query) pull the IQS composite
-down. The comparison in this table is groundedness-only vs groundedness-only for all tools.
+down. Gate is now on by default (`gate_inapplicable_dimensions=True`), which is what produces
+the ρ=0.47 full-pipeline figure. The comparison in this table is groundedness-only vs
+groundedness-only for all tools.
 
 **Honest framing:**
 - RAGAS achieves the highest human correlation (ρ=0.64) — it's the best available signal. But
@@ -236,8 +238,8 @@ Hardware: Intel i7 CPU, single thread, warm cache (models pre-loaded), Windows 1
 
 | Backbone | Mean | p50 | p95 | n | Slowdown vs deberta |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| deberta-base (default, fast) | 4,810ms | 3,228ms | 14,598ms | 380 | — |
-| MiniCheck-RoBERTa-Large (high-accuracy) | 8,422ms | 4,775ms | 28,783ms | 380 | **1.75×** |
+| MiniCheck-RoBERTa-Large (default, high-accuracy) | 8,422ms | 4,775ms | 28,783ms | 380 | **1.75×** |
+| deberta-base (fast) | 4,810ms | 3,228ms | 14,598ms | 380 | — |
 
 **Latency by input type (full pipeline):**
 
