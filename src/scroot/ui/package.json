@@ -11,21 +11,21 @@
   "dependencies": {
     "@radix-ui/react-tooltip": "^1.2.10",
     "framer-motion": "^12.40.0",
-    "lucide-react": "^1.17.0",
+    "lucide-react": "^1.21.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.17.0",
+    "react-router-dom": "^7.18.0",
     "recharts": "^3.8.1",
     "typescript": "^6.0.3",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.3.0",
+    "@tailwindcss/postcss": "^4.3.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
     "autoprefixer": "^10.4.19",
-    "playwright": "^1.60.0",
+    "playwright": "^1.61.0",
     "postcss": "^8.4.40",
     "tailwindcss": "^4.3.0",
     "vite": "^8.0.16"
