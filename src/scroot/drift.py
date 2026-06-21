@@ -1,4 +1,4 @@
-# Apache-2.0. OSS drift / regression detection — real implementation.
+# Apache-2.0. OSS drift / regression detection: real implementation.
 from __future__ import annotations
 
 import pathlib
@@ -56,7 +56,7 @@ def regression_check(
 ) -> RegressionReport:
     """Point-in-time regression check against a baseline for CI gating.
 
-    Fully OSS — pure Python, no external API, no scroot-cloud required.
+    Fully OSS: pure Python, no external API, no scroot-cloud required.
 
     When ``current`` is a list and ``min_effect_size`` / ``confidence`` are
     set, the check uses Mann-Whitney U (requires scipy) to distinguish true
@@ -197,7 +197,7 @@ def _regression_check_statistical(
                 statistically_significant = True  # fail open → conservative
 
         if not statistically_significant:
-            continue  # within sampling variance — not a real regression
+            continue  # within sampling variance, not a real regression
 
         reg: dict = {
             "metric": metric,
@@ -237,7 +237,7 @@ def _to_dict(obj: object) -> dict:
 def continuous(*args, **kwargs) -> object:
     """Cloud handoff to Ampulla for longitudinal drift monitoring.
 
-    scroot does not implement continuous drift monitoring — that is Ampulla's
+    scroot does not implement continuous drift monitoring; that is Ampulla's
     domain. This seam passes the call through to scroot-cloud, which registers
     the Ampulla integration. See https://scroot.dev/cloud/drift for details.
     """

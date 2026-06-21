@@ -78,10 +78,10 @@ def preflight(
 
     Args:
         integrity: Weight-file SHA-256 verification mode.
-            ``"off"`` — skip entirely.
-            ``"warn"`` (default) — surface mismatches in the result without
+            ``"off"``: skip entirely.
+            ``"warn"`` (default): surface mismatches in the result without
             flipping ``ready`` (preserves existing pass/fail semantics).
-            ``"strict"`` — mismatch or unknown hash sets ``ready=False``.
+            ``"strict"``: mismatch or unknown hash sets ``ready=False``.
         expected_hashes: Mapping ``{model_id: sha256_hex}``; overrides /
             extends entries in the bundled ``model_hashes.json`` manifest.
             Useful for custom or side-loaded models.
@@ -92,8 +92,8 @@ def preflight(
                 ``"strict"`` mode also sets this to False on integrity failures.
             missing (list[str]): Model IDs not found in the cache.
             cache_dir (str): Resolved HuggingFace cache directory.
-            integrity (dict[str, str]): Per-model integrity status —
-                ``"ok"``, ``"mismatch"``, ``"unknown"``, or ``"skipped"``.
+            integrity (dict[str, str]): Per-model integrity status.
+                Values: ``"ok"``, ``"mismatch"``, ``"unknown"``, or ``"skipped"``.
                 Only present when ``integrity != "off"``.
     """
     hf_home = os.environ.get(
@@ -169,7 +169,7 @@ def preflight(
 def run(request: dict) -> dict:
     """Score a response locally with no network calls (air-gapped runtime).
 
-    Fully OSS — wraps Auditor.score() with a JSON-serialisable interface
+    Fully OSS: wraps Auditor.score() with a JSON-serialisable interface
     suitable for subprocess piping or local socket use.
 
     Args:
@@ -179,7 +179,7 @@ def run(request: dict) -> dict:
             context (list[str] | None): Optional grounding context chunks.
 
     Returns:
-        result.to_dict() — the full EntailmentResult as a plain dict.
+        result.to_dict(), the full EntailmentResult as a plain dict.
 
     Raises:
         KeyError: If ``query`` or ``response`` keys are missing.

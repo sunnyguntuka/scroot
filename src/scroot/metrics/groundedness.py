@@ -89,7 +89,7 @@ def score_groundedness(
     # backbone_scorer, when provided, bypasses the standard NLI cross-encoder.
     # It must expose score_pairs(pairs) -> list[float] returning P(supported)
     # directly (no softmax needed). Similarity fallback is skipped for
-    # alternative backbones — it is tuned for the deberta uncertain-zone.
+    # alternative backbones; it is tuned for the deberta uncertain-zone.
     _use_backbone = backbone_scorer is not None
     model = None if _use_backbone else get_nli_model(nli_model, device=device)
     claims = extract_atomic_claims(response) if atomic_claims else extract_claims(response)

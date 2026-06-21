@@ -35,7 +35,7 @@ This project uses [Semantic Versioning](https://semver.org/).
 - **Applicability gating**: `Auditor(gate_inapplicable_dimensions=True)` detects and
   excludes structurally inapplicable IQS dimensions. `result.inapplicable_dimensions`
   lists gated dimensions for transparency.
-- **Top-k premise pre-filtering**: `Auditor(top_k_premises=k)` — pre-ranks NLI premises
+- **Top-k premise pre-filtering**: `Auditor(top_k_premises=k)` pre-ranks NLI premises
   by embedding similarity before the cross-encoder runs. Lossless on NQ-500 (0.000 MAD
   vs unfiltered). See `benchmarks/results/topk_optimization.md`.
 
@@ -51,7 +51,7 @@ This project uses [Semantic Versioning](https://semver.org/).
 
 ### Benchmarks (v0.4.0 default)
 
-- **Hallucination discrimination**: AUC 0.991 (MiniCheck) — near-perfect, deterministic, $0.
+- **Hallucination discrimination**: AUC 0.991 (MiniCheck), near-perfect, deterministic, $0.
 - **Human correlation**: Spearman ρ 0.47 on SummEval (same 396 samples as RAGAS and
   DeepEval). Beats DeepEval (ρ 0.28); RAGAS leads at ρ 0.64 (LLM judge, non-deterministic).
 - **Determinism**: 5,400+ checks, 0 deviations, end-to-end through `Auditor.score()`.

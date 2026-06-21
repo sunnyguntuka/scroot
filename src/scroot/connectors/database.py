@@ -8,7 +8,7 @@ results to a result table. The result table is auto-created if absent.
 
 Table and column names are validated against an allowlist pattern
 (``^[A-Za-z_][A-Za-z0-9_]*$``). Identifiers that fail this pattern raise
-``ValueError`` — not a warning. WHERE clauses and cursor columns are still
+``ValueError`` (not a warning). WHERE clauses and cursor columns are still
 caller-controlled; only pass values you control.
 """
 
@@ -57,7 +57,7 @@ class DatabaseConnector:
                 ``"sqlite:///local.db"``
                 ``"bigquery://project/dataset"``
         source_table: Name of the table containing LLM responses.
-            Must match ``^[A-Za-z_][A-Za-z0-9_]*$`` — raises ``ValueError``
+            Must match ``^[A-Za-z_][A-Za-z0-9_]*$``; raises ``ValueError``
             otherwise.
         column_map: Dict mapping entail field names to your column names.
             Required keys: ``"query"``, ``"response"``.
@@ -92,7 +92,7 @@ class DatabaseConnector:
         if "query" not in column_map or "response" not in column_map:
             raise ValueError("column_map must include 'query' and 'response' keys")
 
-        # Validate all identifiers upfront — hard error, not a warning.
+        # Validate all identifiers upfront: hard error, not a warning.
         _validate_identifier(source_table, "source_table")
         _validate_identifier(result_table, "result_table")
         for field_name, col_name in column_map.items():
@@ -183,7 +183,7 @@ class DatabaseConnector:
         Args:
             limit: Max rows to fetch. ``None`` fetches all rows.
             where: Optional SQL WHERE clause (without the ``WHERE`` keyword).
-                This string is injected verbatim — only pass values you
+                This string is injected verbatim; only pass values you
                 control, never user input.
             offset: Row offset for pagination.
             stream: If ``True``, use a server-side streaming cursor

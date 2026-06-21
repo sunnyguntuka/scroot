@@ -179,7 +179,7 @@ class TestStreamSegmentation:
         p_nli, p_emb, _, _ = _patch_models()
         streamer = self._make_streamer()
         # Force split_sentences to return the correct single sentence
-        # (NLTK handles abbreviations; regex fallback may not — mock it).
+        # (NLTK handles abbreviations; regex fallback may not, so mock it).
         with patch(
             "scroot.streaming.split_sentences",
             return_value=["Mr. Smith is great."],
@@ -189,7 +189,7 @@ class TestStreamSegmentation:
                     streamer, ["Mr. Smith is", " great."], "q"
                 )
         sentence_partials = [p for p in partials if p.provisional]
-        # Exactly one sentence "Mr. Smith is great." — not two.
+        # Exactly one sentence "Mr. Smith is great.", not two.
         assert len(sentence_partials) == 1
 
 

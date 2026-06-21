@@ -1,10 +1,10 @@
 """Numeric grounding verifier: detect numeric hallucinations missed by semantic NLI.
 
 Four-layer pipeline:
-  1. Regex extraction — identify all numeric claims in the response.
-  2. Unit normalization — canonicalize values so 1.5 km == 1500 m.
-  3. Claim-level grounding — is each number present or consistent with context?
-  4. NLI integration — optional supplementary signal for ambiguous claims.
+  1. Regex extraction: identify all numeric claims in the response.
+  2. Unit normalization: canonicalize values so 1.5 km == 1500 m.
+  3. Claim-level grounding: is each number present or consistent with context?
+  4. NLI integration: optional supplementary signal for ambiguous claims.
 
 Numeric hallucinations are the #1 RAG failure mode and are routinely missed by
 semantic NLI because NLI models encode semantic similarity, not arithmetic equality.
@@ -61,7 +61,7 @@ class NumericClaim:
 
 _UNIT_MAP: dict[str, tuple[str, str, float]] = {
     # (canonical_unit, family, factor_to_base)
-    # Distance — base: meters
+    # Distance (base unit: meters)
     "m": ("m", "distance", 1.0),
     "meter": ("m", "distance", 1.0), "meters": ("m", "distance", 1.0),
     "metre": ("m", "distance", 1.0), "metres": ("m", "distance", 1.0),
@@ -80,7 +80,7 @@ _UNIT_MAP: dict[str, tuple[str, str, float]] = {
     "inches": ("m", "distance", 0.0254),
     "yd": ("m", "distance", 0.9144), "yard": ("m", "distance", 0.9144),
     "yards": ("m", "distance", 0.9144),
-    # Time — base: seconds
+    # Time (base unit: seconds)
     "second": ("s", "time", 1.0), "seconds": ("s", "time", 1.0),
     "sec": ("s", "time", 1.0), "secs": ("s", "time", 1.0),
     "minute": ("s", "time", 60.0), "minutes": ("s", "time", 60.0),
@@ -92,7 +92,7 @@ _UNIT_MAP: dict[str, tuple[str, str, float]] = {
     "month": ("s", "time", 2592000.0), "months": ("s", "time", 2592000.0),
     "year": ("s", "time", 31536000.0), "years": ("s", "time", 31536000.0),
     "yr": ("s", "time", 31536000.0), "yrs": ("s", "time", 31536000.0),
-    # Mass — base: grams
+    # Mass (base unit: grams)
     "g": ("g", "mass", 1.0), "gram": ("g", "mass", 1.0), "grams": ("g", "mass", 1.0),
     "kg": ("g", "mass", 1000.0),
     "kilogram": ("g", "mass", 1000.0), "kilograms": ("g", "mass", 1000.0),
@@ -104,7 +104,7 @@ _UNIT_MAP: dict[str, tuple[str, str, float]] = {
     "ounces": ("g", "mass", 28.3495),
     "ton": ("g", "mass", 1_000_000.0), "tons": ("g", "mass", 1_000_000.0),
     "tonne": ("g", "mass", 1_000_000.0), "tonnes": ("g", "mass", 1_000_000.0),
-    # Volume — base: liters
+    # Volume (base unit: liters)
     "l": ("l", "volume", 1.0), "liter": ("l", "volume", 1.0),
     "liters": ("l", "volume", 1.0), "litre": ("l", "volume", 1.0),
     "litres": ("l", "volume", 1.0),
@@ -112,7 +112,7 @@ _UNIT_MAP: dict[str, tuple[str, str, float]] = {
     "milliliter": ("l", "volume", 0.001), "milliliters": ("l", "volume", 0.001),
     "gal": ("l", "volume", 3.78541), "gallon": ("l", "volume", 3.78541),
     "gallons": ("l", "volume", 3.78541),
-    # Data — base: bytes
+    # Data (base unit: bytes)
     "b": ("b", "data", 1.0), "byte": ("b", "data", 1.0), "bytes": ("b", "data", 1.0),
     "kb": ("b", "data", 1024.0), "kilobyte": ("b", "data", 1024.0),
     "kilobytes": ("b", "data", 1024.0),

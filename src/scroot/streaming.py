@@ -7,9 +7,9 @@ response text). The final ``PartialScore`` has ``provisional=False`` and
 its ``iqs`` equals ``Auditor.score()`` on the full text (parity).
 
 Incremental dims:
-  relevance   — per-sentence cosine(query, sentence) through the sigmoid,
-                aggregated as a running mean.
-  consistency — O(k) NLI pairs per sentence (new sentence vs each prior),
+  relevance:   per-sentence cosine(query, sentence) through the sigmoid,
+               aggregated as a running mean.
+  consistency: O(k) NLI pairs per sentence (new sentence vs each prior),
                 bidirectional; running contradiction count / running pairs.
 
 Deferred dims (never imputed into partial scores):
@@ -43,7 +43,7 @@ class PartialScore:
 
     Every partial emitted during streaming has ``provisional=True``.
     ``deferred`` lists the dim names excluded from ``partial_iqs``.
-    Deferred dims are never imputed — they appear only in the final partial.
+    Deferred dims are never imputed; they appear only in the final partial.
 
     The final emission has ``provisional=False``, ``iqs == result.iqs``, and
     ``result`` is the full :class:`~scroot.EntailmentResult`.
@@ -201,7 +201,7 @@ class StreamingAuditor:
         if not full_text.strip():
             return
 
-        # Final full pass — parity with Auditor.score() is guaranteed.
+        # Final full pass; parity with Auditor.score() is guaranteed.
         result = auditor.score(query, full_text, context)
 
         final_dims: dict[str, float] = {

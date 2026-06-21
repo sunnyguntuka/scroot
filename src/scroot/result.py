@@ -59,7 +59,7 @@ class EntailmentResult:
     iqs_metric_count: "int | None" = None
 
     # Opt-in cached intermediates (Auditor keep_intermediates=True).
-    # None by default — never affects scoring output.
+    # None by default; never affects scoring output.
     # Fields when populated:
     #   "query_embedding":    np.ndarray, shape (dim,)
     #   "response_embeddings": np.ndarray, shape (n_sentences, dim) — one per sentence

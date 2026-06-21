@@ -108,7 +108,7 @@ class TestSha256File:
         digest = _sha256_file(f)
         assert len(_HASH_CACHE) == 1
 
-        # Patch hashlib.sha256 to blow up — second call must use cache
+        # Patch hashlib.sha256 to blow up; second call must use cache
         def _boom(*a, **kw):
             raise AssertionError("sha256 called again after caching")
 
@@ -121,7 +121,7 @@ class TestSha256File:
 # ---------------------------------------------------------------------------
 
 class TestPreflightIntegrity:
-    """Integrity checks with a fake HF cache — no model downloads needed."""
+    """Integrity checks with a fake HF cache; no model downloads needed."""
 
     def _setup_nli_model(self, hub: pathlib.Path, weight_bytes: bytes) -> str:
         """Create fake NLI model; return its expected SHA-256."""
@@ -225,7 +225,7 @@ class TestPreflightIntegrity:
         assert len(_HASH_CACHE) == 1
         cache_key = next(iter(_HASH_CACHE))
 
-        # Corrupt hashlib.sha256 — second call must not reach it
+        # Corrupt hashlib.sha256; second call must not reach it
         def _boom(*a, **kw):
             raise AssertionError("hashlib.sha256 called on second preflight — cache miss!")
 
@@ -264,7 +264,7 @@ class TestPreflightIntegrity:
             "cross-encoder/nli-deberta-v3-base": _sha256_bytes(b"wrong"),
         })
 
-        # expected_hashes has the correct hash — should win
+        # expected_hashes has the correct hash; should win
         result = preflight(
             integrity="warn",
             expected_hashes={"cross-encoder/nli-deberta-v3-base": real_digest},

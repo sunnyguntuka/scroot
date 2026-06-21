@@ -61,7 +61,7 @@ def _chunk_article(text: str) -> list[str]:
     """Split article into individual sentences as context chunks.
 
     Single-sentence chunks + top_k_chunks=3 is the fastest configuration:
-    - Embedding: O(n_sentences) in one batch — fast for all-MiniLM
+    - Embedding: O(n_sentences) in one batch, fast for all-MiniLM
     - Retrieval: picks 3 most relevant sentences
     - NLI: those 3 sentences are already atomic, so groundedness.py creates
       exactly 3 NLI premises per claim (vs ~30 for paragraph-level chunks)

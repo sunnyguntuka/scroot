@@ -54,7 +54,7 @@ RAG_WEIGHTS = {
 }
 
 # Factual/code/legal/technical preset: confidence excluded (weight 0.0).
-# The confidence metric counts hedge/assertion markers — on declarative or
+# The confidence metric counts hedge/assertion markers. On declarative or
 # code responses with no hedging language it always returns 0.5 (no signal).
 # Use this preset for domains where responses are expected to be assertive
 # and the 0.5 non-signal would dilute IQS. Redistribution is proportional:

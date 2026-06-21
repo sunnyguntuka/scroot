@@ -1,4 +1,4 @@
-# Apache-2.0. NO license logic, NO enterprise code — only the seam.
+# Apache-2.0. NO license logic, NO enterprise code. Only the seam.
 from __future__ import annotations
 
 import sys

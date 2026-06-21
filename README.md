@@ -5,7 +5,7 @@
 <h1 align="center">scroot</h1>
 
 <h3 align="center">Deterministic quality scoring for LLM responses</h3>
-<p align="center">Same input, same score, every time — no judge model, no API, no cost.</p>
+<p align="center">Same input, same score, every time. No judge model, no API, no cost.</p>
 
 <p align="center">
   <a href="https://pypi.org/project/scroot/">
@@ -36,8 +36,8 @@
 ## Why scroot?
 
 Teams deploying LLM agents and RAG systems can't manually review
-every response. Existing tools use a judge model — a second LLM
-call per evaluation — which costs $0.01–0.05/eval, takes 2–5s,
+every response. Existing tools use a judge model (a second LLM
+call per evaluation), which costs $0.01–0.05/eval, takes 2–5s,
 and gives non-deterministic results. **scroot** scores every
 response locally using NLI models and embedding similarity.
 Zero cost. Deterministic. 100% coverage.

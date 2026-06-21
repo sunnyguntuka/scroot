@@ -54,7 +54,7 @@ single composite IQS (Information Quality Score):
 
 **IQS** is the weighted harmonic mean of all applicable dimensions (weights: groundedness 0.35,
 completeness 0.25, relevance 0.20, consistency 0.15, confidence 0.05). The harmonic mean
-penalises any zero dimension hard — a response that is grounded but completely off-topic scores
+penalises any zero dimension hard: a response that is grounded but completely off-topic scores
 low, correctly.
 
 **Numeric grounding verifier:** numeric claims (prices, dates, percentages) are verified
@@ -93,8 +93,7 @@ records. Perturbation levels:
 | A3 | Fully fabricated answer — topically plausible but unsupported |
 | A4 | Completely off-topic response |
 
-This is a discrimination test, not a human-correlation test. Metric: AUC(A0 vs A4) —
-probability that a grounded response outscores a fabricated one. Gate: ≥ 0.85.
+This is a discrimination test, not a human-correlation test. Metric: AUC(A0 vs A4), probability that a grounded response outscores a fabricated one. Gate: ≥ 0.85.
 
 ### Hardware
 
@@ -106,7 +105,7 @@ model-weight loading.
 
 **Spearman ρ** and **Pearson r** with two-sided p-values (scipy). **Bootstrap 95% CIs**:
 1,000 paired resamples, seed 1234, percentile method. The paired-difference CI is the powered
-test of record for A/B comparisons — per-model CIs overlap even when the paired difference is
+test of record for A/B comparisons; per-model CIs overlap even when the paired difference is
 significant because both models score the same samples.
 
 ### What "deterministic" means
@@ -135,27 +134,27 @@ Groundedness-harness latency (Exp A, groundedness only) is higher (MiniCheck ~12
 deberta ~5.1s) because Exp A scores groundedness on every premise without composite
 short-circuiting.
 
-† RAGAS latency is wall-clock/N over a batched parallel `evaluate()` call — not a serial
+† RAGAS latency is wall-clock/N over a batched parallel `evaluate()` call, not a serial
 per-sample figure. It understates RAGAS's true per-request cost; treat cross-tool latency as
 indicative.
 
 **scroot (MiniCheck) rho 0.47** and **scroot (deberta) rho 0.43** are from the Exp A
 backbone harness, which scores groundedness only on the same 396 samples. The full-pipeline
-baseline (all 5 IQS dimensions, deberta backbone) is **rho 0.40** — slightly lower because
+baseline (all 5 IQS dimensions, deberta backbone) is **rho 0.40**, slightly lower because
 inapplicable dimensions (relevance on a generic "Summarize…" query) pull the IQS composite
 down. Gate is now on by default (`gate_inapplicable_dimensions=True`), which is what produces
 the ρ=0.47 full-pipeline figure. The comparison in this table is groundedness-only vs
 groundedness-only for all tools.
 
 **Honest framing:**
-- RAGAS achieves the highest human correlation (ρ=0.64) — it's the best available signal. But
+- RAGAS achieves the highest human correlation (ρ=0.64), the best available signal. But
   it is non-deterministic, API-dependent, and costs ~$0.21 per 396 samples. A pinned LLM still
   varies with server batching; reproducible audits are impossible.
 - scroot beats DeepEval (0.47 vs 0.28 with MiniCheck; 0.43 vs 0.28 with deberta) and
-  reaches ~73% of RAGAS's correlation — while being the only deterministic, free, offline
+  reaches ~73% of RAGAS's correlation, while being the only deterministic, free, offline
   option.
-- For production monitoring at scale — where you score every request, need reproducible scores
-  for audits, and cannot pay per call — scroot's tradeoff wins. For one-off research evaluation
+- For production monitoring at scale (scoring every request, needing reproducible scores
+  for audits, with no per-call cost), scroot's tradeoff wins. For one-off research evaluation
   where correlation is everything, an LLM judge correlates higher.
 
 **TruthScore excluded:** the `truthscore` PyPI package (v0.3.0) is a reimplementation of
@@ -170,7 +169,7 @@ reasoning: `benchmarks/results/truthscore_exclusion.md`.
 ## 5. Hallucination discrimination (NQ-500, 2,500 records)
 
 scroot's strongest result. Probability that a grounded response scores above a fabricated one:
-**AUC 0.991** with MiniCheck — near-perfect hallucination discrimination, deterministic, $0.
+**AUC 0.991** with MiniCheck: near-perfect hallucination discrimination, deterministic, $0.
 
 ### Metric table
 
@@ -202,7 +201,7 @@ zero (A4 IQS ~0.004) so discrimination is not harmed in practice, but MiniCheck 
 inversion entirely.
 
 "scroot correctly ranks a grounded response above a fabricated one 99.1% of the time
-(AUC 0.991) — near-perfect hallucination discrimination, deterministic and free. This is the
+(AUC 0.991), near-perfect hallucination discrimination, deterministic and free. This is the
 property that matters most for production grounding."
 
 Reproduce: `python benchmarks/bench_minicheck_nq500_gate.py`
@@ -213,7 +212,7 @@ Artifact: `benchmarks/results/minicheck_nq500_gate.md`
 ## 6. Determinism
 
 Same input → identical output, bit-for-bit, across all runs. End-to-end through the full
-`Auditor.score()` path — not a metric in isolation.
+`Auditor.score()` path, not a metric in isolation.
 
 | Check | Examples | Passes | Metrics | Total checks | Deviations |
 |:---|:---:|:---:|:---:|:---:|:---:|
@@ -226,7 +225,7 @@ Same input → identical output, bit-for-bit, across all runs. End-to-end throug
 
 **Why it matters:** reproducible scores for CI gates, compliance audits, and regression
 detection. An LLM judge gives different scores for the same input (temperature, server
-batching) — it cannot be used where reproducibility is required. scroot can be used as a
+batching); it cannot be used where reproducibility is required. scroot can be used as a
 deterministic quality gate in GitHub Actions, where a non-zero deviation would be a
 build failure.
 
@@ -255,7 +254,7 @@ Hardware: Intel i7 CPU, single thread, warm cache (models pre-loaded), Windows 1
 | NQ level 2 | 4,311ms | 6,988ms | 1.62× |
 | NQ level 3 | 3,369ms | 5,409ms | 1.61× |
 
-Tail latency (p95) is driven by long-document contexts — NLI cost scales with context length.
+Tail latency (p95) is driven by long-document contexts; NLI cost scales with context length.
 The p50 is the typical experience; p95 is the long-document worst case. Use focused context
 chunks (top-k retrieval) to keep latency in the p50 range.
 
@@ -263,7 +262,7 @@ chunks (top-k retrieval) to keep latency in the p50 range.
 
 `top_k_premises=8` (default): pre-ranks NLI premises by embedding similarity to the claim and
 runs the cross-encoder only on the top-8. Speedup grows with context size; score delta is
-0.000 (lossless — the top-k premises are the entailing ones):
+0.000 (lossless: the top-k premises are the entailing ones):
 
 | Context sentences | Unfiltered | Filtered (k=5) | Speedup | Score delta |
 |:---:|:---:|:---:|:---:|:---:|
@@ -297,7 +296,7 @@ credibility asset: it shows the numbers came from rigorous experimentation, not 
 
 **Hypothesis:** spaCy dependency-parse decomposition (coordinating conjunctions, relative
 clauses, appositives) would extract more precise atomic claims than scroot's regex extractor,
-improving SummEval correlation — analogous to what RAGAS does with an LLM.
+improving SummEval correlation, analogous to what RAGAS does with an LLM.
 
 **Result:** No improvement. On the same 396 SummEval samples (deberta-base backbone,
 coverage-ratio aggregation):
@@ -342,7 +341,7 @@ with bootstrap CIs shows the gap collapses into noise:
 | nli-deberta-v3-base (default) | 0.316 | [0.186, 0.429] | 2,651ms |
 | nli-deberta-v3-large | 0.332 | [0.217, 0.437] | 8,783ms |
 
-Paired rho difference (large − base): **+0.016, 95% CI [−0.053, +0.101] — includes zero.**
+Paired rho difference (large − base): **+0.016, 95% CI [−0.053, +0.101]**, includes zero.
 CIs overlap. The large model costs 3.3× the latency for no robust improvement. **Keep
 deberta-base as the default.**
 
@@ -355,14 +354,13 @@ Artifact: `benchmarks/results/model_ab_powered.md`
 (deberta ρ=0.4017 → MiniCheck-RoBERTa ρ=0.4659, MiniCheck-Flan-T5 ρ=0.4764). The
 remaining ~0.16 gap appears structural:
 
-- RAGAS uses an LLM judge for claim decomposition — it captures nuance that NLI cross-encoders
+- RAGAS uses an LLM judge for claim decomposition, capturing nuance that NLI cross-encoders
   miss (implicit implications, pragmatics, world knowledge).
 - The SummEval task (headline-style summaries of news articles) may not be the ideal benchmark
   for scroot's formulation, which is optimised for RAG question-answering.
 - Better claim decomposition (spaCy) and aggregation (mean, min) did not help.
 
-Closing the remaining gap requires LLM judges, very large models (7B+), or non-determinism —
-all of which conflict with scroot's design goals. We chose not to pursue it further.
+Closing the remaining gap requires LLM judges, very large models (7B+), or non-determinism, all of which conflict with scroot's design goals. We chose not to pursue it further.
 
 ---
 
@@ -421,11 +419,11 @@ hedge_count=1, assert_count=0, score=0.0.
 **Found in:** SummEval IQS correlation investigation (IQS ρ = 0.12 despite groundedness ρ = 0.36)
 
 **Symptom:** On SummEval, IQS had dramatically lower correlation with human annotations than
-groundedness alone — despite groundedness being the only dimension with meaningful signal on
+groundedness alone, despite groundedness being the only dimension with meaningful signal on
 this task.
 
 **Root cause:** With a generic "Summarize the following article" query, the relevance dimension
-measures query-response cosine similarity — near-constant across all summaries (they all cover
+measures query-response cosine similarity, near-constant across all summaries (they all cover
 the same topic). This near-zero relevance score collapsed the harmonic mean, pulling IQS far
 below the groundedness signal.
 
@@ -528,7 +526,7 @@ python benchmarks/bench_composite_fix_validate.py
 ### Branch and commit provenance
 
 All numbers in this document trace to committed benchmark code. The results span several
-feature branches — not yet merged to main as of this writing:
+feature branches, not yet merged to main as of this writing:
 
 | Sprint | Branch | Key commit | Numbers produced |
 |:---|:---|:---|:---|

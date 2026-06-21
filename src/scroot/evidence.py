@@ -112,7 +112,7 @@ def _compute_mini_iqs(
 ) -> None:
     """Populate mini_iqs and mini_dims on each EvidenceEntry in-place.
 
-    Uses pre-computed embeddings and consistency NLI logits — no extra model
+    Uses pre-computed embeddings and consistency NLI logits; no extra model
     calls. Completeness and confidence are response-level and excluded here.
     """
     import numpy as np
@@ -314,7 +314,7 @@ def build_evidence_map(
         )
 
     # Per-sentence mini-IQS (R1). Reuses in-process embeddings and consistency
-    # NLI logits — no additional model calls required.
+    # NLI logits; no additional model calls required.
     # Completeness and confidence are response-level → excluded per-sentence.
     _compute_mini_iqs(
         entries, sentences, sentence_embs, query_embedding,

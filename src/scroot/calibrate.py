@@ -1,4 +1,4 @@
-# Apache-2.0. OSS calibration — real implementation, no cloud dependency.
+# Apache-2.0. OSS calibration: real implementation, no cloud dependency.
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -47,7 +47,7 @@ def calibrate(
 ) -> CalibrationResult:
     """Fit an IQS threshold (and optionally per-metric weights) from labeled data.
 
-    Fully OSS — pure Python, no external API, no scroot-cloud required.
+    Fully OSS: pure Python, no external API, no scroot-cloud required.
 
     Args:
         labeled_data: List of ``(EntailmentResult, passed)`` pairs where

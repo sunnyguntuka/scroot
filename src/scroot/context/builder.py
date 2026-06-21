@@ -257,7 +257,7 @@ class ContextBuilder:
     ) -> "ContextBuilder":
         """Record the user's query. Call first, before retrieval.
 
-        Calling more than once appends to query history with timestamps —
+        Calling more than once appends to query history with timestamps;
         useful for multi-turn conversations where the query evolves.
 
         Args:

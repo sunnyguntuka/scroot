@@ -37,7 +37,7 @@ SUMMEVAL = Path(__file__).parent / "datasets" / "summeval.jsonl"
 CACHE = RESULTS_DIR / "minicheck_fullpipeline_cache.json"
 OUT_MD = RESULTS_DIR / "minicheck_fullpipeline.md"
 
-# Auditor configs — only groundedness_backbone differs
+# Auditor configs: only groundedness_backbone differs
 DEBERTA_CFG = dict(groundedness_backbone="deberta-base")
 MINICHECK_CFG = dict(groundedness_backbone="minicheck-roberta-large")
 
@@ -281,7 +281,7 @@ def check_integrity(set_a_inputs, deb_results, mc_results) -> dict[str, str]:
         "PASS" if not ev_missing
         else f"FAIL: missing evidence map on {len(ev_missing)} context inputs")
 
-    # 4. Fallback (no-context) works — groundedness should be None
+    # 4. Fallback (no-context) works; groundedness should be None
     no_ctx_mc = [(i, inp, r) for i, (inp, r) in enumerate(zip(set_a_inputs, mc_results))
                  if inp.get("context") is None and r["ok"]]
     fallback_bad = [i for i, inp, r in no_ctx_mc if r["groundedness"] is not None]

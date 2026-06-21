@@ -25,8 +25,8 @@ Rules:
    runtime with `EnterpriseFeatureError` rather than an import error, which is
    surprising.
 2. **Adding a seam is always minor.** The new seam raises `EnterpriseFeatureError`
-   on existing cloud installs that don't supply it yet — gracefully degraded,
-   not broken.
+   on existing cloud installs that don't supply it yet (gracefully degraded,
+   not broken).
 3. **Removing a seam is always major.** The cloud plugin would try to register a
    key that no longer exists.
 
@@ -62,8 +62,8 @@ proves the OSS upsell path is wired for every seam.
 ```
 
 Asserts: the set of seam keys registered by `scroot_cloud.register()` equals
-`scroot._messages.SEAM_LABELS.keys()`. Any mismatch — seam added to scroot but
-not cloud, or cloud registering a phantom key — fails CI.
+`scroot._messages.SEAM_LABELS.keys()`. Any mismatch (seam added to scroot but
+not cloud, or cloud registering a phantom key) fails CI.
 
 ### Scheduled compatibility job (`scroot-cloud/.github/workflows/compat.yml`)
 

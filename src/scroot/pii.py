@@ -1,4 +1,4 @@
-# Apache-2.0. Public PII API — scrub (OSS) + policy (Cloud).
+# Apache-2.0. Public PII API: scrub (OSS) + policy (Cloud).
 from __future__ import annotations
 
 from .context.pii import ScrubResult, scrub as _scrub_impl
@@ -13,7 +13,7 @@ def scrub(
 ) -> ScrubResult:
     """Replace detected PII with typed placeholders.
 
-    Fully OSS — regex-based, local, no external API.
+    Fully OSS: regex-based, local, no external API.
 
     Args:
         text: Raw text that may contain PII.

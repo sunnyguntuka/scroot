@@ -64,7 +64,7 @@ Includes everything in Team, plus:
 ### Enterprise (air-gapped)
 
 Same feature set as Enterprise. The runtime is offline-licensed via an embedded
-Ed25519 public key — no network calls during license verification. Designed for
+Ed25519 public key; no network calls during license verification. Designed for
 regulated environments where all traffic must remain on-premises.
 
 ---

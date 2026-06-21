@@ -27,7 +27,7 @@ from pathlib import Path
 # Add src/ so scroot is importable. bench_gap_backbone_ab's own module-level
 # code removes benchmarks/ from sys.path when it is imported (preventing the
 # local datasets/ dir from shadowing the HF datasets package), so we don't
-# need to do that here — just ensure src/ is present before the import.
+# need to do that here; just ensure src/ is present before the import.
 _src_dir = str(Path(__file__).parent.parent / "src")
 if _src_dir not in sys.path:
     sys.path.insert(0, _src_dir)

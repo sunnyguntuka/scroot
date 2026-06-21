@@ -222,7 +222,7 @@ class MiniCheckRobertaBackbone:
     """MiniCheck-RoBERTa-Large binary support classifier.
 
     Drop-in groundedness backend for score_groundedness(). score_pairs()
-    returns P(supported) directly — treated as the entailment probability.
+    returns P(supported) directly, treated as the entailment probability.
     Similarity fallback is skipped (not applicable to binary classifiers).
     """
 

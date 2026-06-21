@@ -322,7 +322,7 @@ class Auditor:
                 )
 
         # Pre-compute query embedding once; reused by score_relevance and
-        # build_evidence_map (per-sentence relevance) — zero extra encode calls.
+        # build_evidence_map (per-sentence relevance). Zero extra encode calls.
         _query_emb = None
         if query.strip():
             _emb_model = get_embedding_model(self.embedding_model, device=self.device)

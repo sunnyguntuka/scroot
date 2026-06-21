@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generate SEAMS.md — a human-readable audit of all gated seam surfaces.
+"""Generate SEAMS.md: a human-readable audit of all gated seam surfaces.
 
 Run from the repo root:
     python scripts/list_seams.py            # print to stdout

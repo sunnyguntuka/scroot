@@ -1,4 +1,4 @@
-# Apache-2.0. Test helpers — not part of the public API; not shipped to end users.
+# Apache-2.0. Test helpers: not part of the public API, not shipped to end users.
 from __future__ import annotations
 
 

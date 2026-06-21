@@ -222,7 +222,7 @@ def _compute_stats(scored: list[dict], total_time_s: float = 0.0) -> dict:
             "max_iqs": round(max(subset), 4) if subset else 0.0,
         }
 
-    # Binary AUC: A0 (grounded) vs A4 (off-topic) — headline discrimination metric
+    # Binary AUC: A0 (grounded) vs A4 (off-topic), the headline discrimination metric
     a0 = level_scores[0]
     a4 = level_scores[4]
     a3 = level_scores[3]
