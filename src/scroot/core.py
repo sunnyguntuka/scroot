@@ -90,6 +90,31 @@ class Auditor:
             (``"hallucination_risk"``, ``"off_topic"``, ``"self_contradictory"``,
             ``"incomplete"``, ``"ungrounded"``). Unset keys fall back to
             built-in defaults.
+        keep_intermediates: If True, attach intermediate computation details to
+            ``result.details``. Default False.
+        gate_inapplicable_dimensions: If True (default), dimensions that cannot
+            meaningfully apply to a given input are excluded from the IQS
+            composite rather than scored at near-zero. This prevents inapplicable
+            metrics (e.g. relevance on a single-sentence extractive summary) from
+            deflating the composite score. Disable only if you need all five
+            dimensions scored unconditionally.
+        groundedness_backbone: Grounding model to use.
+
+            - ``"minicheck-roberta-large"`` (default): MiniCheck-RoBERTa-Large,
+              355M, purpose-built factuality classifier. AUC 0.991 on NQ-500,
+              Spearman ρ=0.47 on SummEval. Higher accuracy, ~1.75× latency
+              vs deberta.
+            - ``"deberta-base"``: cross-encoder/nli-deberta-v3-base, 184M,
+              3-class NLI. Faster (3.2s vs 4.8s groundedness harness), lower
+              accuracy (AUC 0.875, ρ=0.43). Use when latency is the primary
+              constraint.
+        top_k_premises: Number of premises (context sentences) to pass to the
+            NLI cross-encoder per claim, pre-selected by embedding similarity.
+            Reduces grounding inference from O(R×C) to O(R×k) with zero score
+            delta on benchmarks (6,000 checks, 0 deviations). Speedup is
+            negligible at <10 context sentences and 3.5× at 40 sentences.
+            Set to None to disable and run the full O(R×C) cross-product
+            (not recommended for long contexts). Default 8.
     """
 
     def __init__(
@@ -103,7 +128,7 @@ class Auditor:
         similarity_fallback: bool = True,
         similarity_threshold: float = 0.82,
         top_k_chunks: int = 3,
-        top_k_premises: int = 5,
+        top_k_premises: int = 8,
         bidirectional_consistency: bool = True,
         nli_completeness: bool = True,
         max_query_length: int = 10_000,
@@ -395,8 +420,7 @@ class Auditor:
         # consistency on a single-sentence response), set its score to None so
         # compute_iqs_detailed excludes it and renormalises the remaining
         # weights, rather than letting a pathologically low non-signal collapse
-        # IQS via the harmonic mean. Opt-in (default off) to preserve existing
-        # behaviour. groundedness/completeness are never gated.
+        # IQS via the harmonic mean. groundedness/completeness are never gated.
         if self.gate_inapplicable_dimensions:
             from .applicability import inapplicable_dimensions
             gated = inapplicable_dimensions(query, response)
