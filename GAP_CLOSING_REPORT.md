@@ -136,6 +136,50 @@ moved the needle.
   to completion. AlignScore and Bespoke-MiniCheck-7B were not tested (not
   installed; documented skip per spec).
 
+---
+
+## Full-Pipeline Integration (MiniCheck opt-in)
+
+Branch: `bench/minicheck-fullpipeline` | Commits: `c7b1b0d`
+
+MiniCheck-RoBERTa-Large wired as a selectable backbone into the real
+`Auditor.score()` path via `groundedness_backbone="minicheck-roberta-large"`.
+
+### Integrity (Set A, n=63)
+
+All checks passed:
+
+| Check | Result |
+|---|---|
+| No crashes (deberta) | PASS |
+| No crashes (MiniCheck) | PASS |
+| Other 4 dims identical | PASS |
+| Evidence map present | PASS |
+| No-context fallback | PASS |
+| IQS sanity (A0 > A4) | PASS (mean 0.552 vs 0.000) |
+| Determinism (20×10 passes) | 0 deviations |
+
+### Latency (Set B, n=380)
+
+| Backbone | Mean | p50 | p95 |
+|---|---|---|---|
+| deberta-base | 4810ms | 3228ms | 14598ms |
+| MiniCheck-RoBERTa-Large | 8422ms | 4775ms | 28783ms |
+| **Slowdown** | **1.75×** | 1.48× | 1.97× |
+
+### Recommendation
+
+At 1.75× mean slowdown (threshold: <1.5× to promote to default), MiniCheck
+remains an **opt-in** backbone. Ship as:
+
+```python
+Auditor(groundedness_backbone="minicheck-roberta-large")
+```
+
+Default stays `"deberta-base"`. No change to default latency profile.
+
+---
+
 ## What didn't close the gap
 
 The remaining gap to RAGAS (0.48 vs 0.64) appears structural:
