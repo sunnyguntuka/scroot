@@ -1,0 +1,48 @@
+cff-version: 1.2.0
+message: "If you use scroot in your research, please cite both the software and the paper below."
+title: "scroot: Deterministic, Judge-Free Response Quality Scoring"
+abstract: >-
+  scroot is an open-source evaluation framework that scores LLM responses
+  using factuality classifiers and embedding similarity, producing five
+  interpretable quality dimensions (groundedness, completeness, relevance,
+  consistency, confidence) and a composite Information Quality Score (IQS),
+  without any generative judge model. The score is deterministic, runs fully
+  offline on CPU, and incurs zero marginal cost per evaluation.
+type: software
+authors:
+  - family-names: Guntuka
+    given-names: Sunny
+    email: reachsguntuka@gmail.com
+    orcid: "https://orcid.org/0009-0001-2135-3396"
+repository-code: "https://github.com/sunnyguntuka/scroot"
+url: "https://github.com/sunnyguntuka/scroot"
+license: Apache-2.0
+version: 0.4.1
+date-released: "2026-06-21"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.20788786"
+    description: "Concept DOI (always resolves to the latest version) of the scroot paper on Zenodo"
+keywords:
+  - llm-evaluation
+  - hallucination-detection
+  - natural-language-inference
+  - factuality
+  - rag
+  - deterministic-evaluation
+  - judge-free
+preferred-citation:
+  type: article
+  title: >-
+    scroot: Deterministic, Judge-Free Response Quality Scoring via
+    Factuality Classifiers and Embedding Similarity
+  authors:
+    - family-names: Guntuka
+      given-names: Sunny
+      email: reachsguntuka@gmail.com
+      orcid: "https://orcid.org/0009-0001-2135-3396"
+  year: 2026
+  doi: "10.5281/zenodo.20788786"
+  url: "https://doi.org/10.5281/zenodo.20788786"
+  # When arXiv assigns an identifier, add it as an alternate below:
+  # notes: "Also available at arXiv:XXXX.XXXXX (https://arxiv.org/abs/XXXX.XXXXX)"
