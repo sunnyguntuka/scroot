@@ -62,6 +62,10 @@ Zero cost. Deterministic. 100% coverage.
 > annotations. p-values all < 0.001. Latency on Intel i7 CPU, warm cache, n=380.
 > "scroot (fast)" = `Auditor(groundedness_backbone="deberta-base")`.
 
+<p align="center">
+  <img src="https://cdn.jsdelivr.net/gh/sunnyguntuka/scroot@main/assets/scroot-cost-image.png" alt="Cost chart: cumulative cost of scoring responses as volume grows. scroot stays at $0 across 1M evals. RAGAS reaches $520 and DeepEval reaches $40 at 1M evals." width="680">
+</p>
+
 **See [BENCHMARKS.md](BENCHMARKS.md) for full methodology, reproducibility instructions, and detailed results.**
 
 
