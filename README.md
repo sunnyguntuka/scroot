@@ -200,7 +200,7 @@ Hugging Face; after that everything runs fully offline. See
 ## How it works
 
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/sunnyguntuka/scroot@main/assets/readme_architecture_diagram.svg" alt="Architecture diagram: user query and LLM response enter the scroot scoring engine, which runs five parallel metrics (groundedness via NLI, completeness via embeddings, relevance via cosine similarity, consistency via pairwise NLI, confidence via regex), combines them into an IQS score, raises quality flags, and feeds corrections back as guardrails" width="680">
+  <img src="https://cdn.jsdelivr.net/gh/sunnyguntuka/scroot@main/assets/scroot_how_it_works_flow.svg" alt="Flow diagram: user query goes to an LLM, the raw response enters scroot's scoring engine (factuality classifier and embeddings, no LLM call), which runs groundedness, completeness, relevance, consistency, and confidence checks. The result is an IQS score that routes low-scoring responses to a feedback store and passing responses through the quality gate." width="680">
 </p>
 
 Every response flows through the scoring engine which checks five
