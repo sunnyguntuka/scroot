@@ -108,8 +108,6 @@ def preflight(
         ("sentence-transformers/all-MiniLM-L6-v2", "sentence-transformers--all-MiniLM-L6-v2"),
         # also check without org prefix (some HF versions store it this way)
         ("all-MiniLM-L6-v2", "models--all-MiniLM-L6-v2"),
-        # default groundedness backbone (MiniCheck-RoBERTa-Large)
-        ("lytang/MiniCheck-RoBERTa-Large", "lytang--MiniCheck-RoBERTa-Large"),
     ]
 
     missing: list[str] = []
