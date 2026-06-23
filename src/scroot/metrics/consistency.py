@@ -166,6 +166,7 @@ def score_consistency(
         "contradictions": contradictions,
         "bidirectional": bidirectional,
         "pair_sampled": sampled,
+        "truncated": truncated,
     }
     if sampled:
         details["pair_sample_size"] = len(pairs)
@@ -175,8 +176,7 @@ def score_consistency(
             f"{_PAIR_SAMPLE_THRESHOLD}). Set pair_sample_size=0 to "
             "disable sampling."
         )
-    elif truncated:
-        details["truncated"] = True
+    if truncated:
         details["note"] = (
             f"Scored on {max_sentences} of the original sentences "
             f"(first/last {max_sentences // 2})"
