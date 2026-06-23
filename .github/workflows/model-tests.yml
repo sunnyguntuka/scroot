@@ -9,6 +9,10 @@ jobs:
   needs-model:
     runs-on: ubuntu-latest
 
+    env:
+      HF_HUB_ENABLE_HF_TRANSFER: "1"   # faster model downloads via hf_transfer
+      HF_HOME: ~/.cache/huggingface
+
     steps:
       - uses: actions/checkout@v7
 
@@ -17,9 +21,17 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Cache HuggingFace models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-models-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            hf-models-${{ runner.os }}-
+
       - name: Install package
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip hf_transfer
           pip install -e ".[ci]"
 
       - name: Run tests requiring model weights
