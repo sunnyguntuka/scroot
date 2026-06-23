@@ -19,7 +19,7 @@ Learn more: https://scroot.dev/cloud
 | `metrics.builder` | No-code custom metric builder | register_metric() code-level custom metric | `src/scroot/metrics/__init__.py:15` |
 | `pii.policy` | Regulatory PII policy management | scrub() local masking with allowlist + grounding mode | `src/scroot/pii.py:44` |
 | `review.queue` | Hosted review queue | review.ui() local single-user viewer (scroot serve) | `src/scroot/review/__init__.py:41` |
-| `runtime.managed` | Managed scoring runtime | runtime.run() local air-gapped scoring + preflight() | `src/scroot/runtime/__init__.py:200` |
+| `runtime.managed` | Managed scoring runtime | runtime.run() local air-gapped scoring + preflight() | `src/scroot/runtime/__init__.py:202` |
 
 ## Three access states
 
