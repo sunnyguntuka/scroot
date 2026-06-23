@@ -230,16 +230,29 @@ class MiniCheckRobertaBackbone:
     _BATCH_SIZE = 16
 
     def __init__(self, device: str = "cpu") -> None:
-        import torch
-        from transformers import (AutoModelForSequenceClassification,
-                                  AutoTokenizer)
+        try:
+            import torch
+            from transformers import (AutoModelForSequenceClassification,
+                                      AutoTokenizer)
+        except ImportError as exc:
+            raise ImportError(
+                "transformers is required for the MiniCheck backbone: "
+                "pip install transformers"
+            ) from exc
         self._torch = torch
         self._device = device
-        self._tok = AutoTokenizer.from_pretrained(self.HF_NAME)
-        self._model = (AutoModelForSequenceClassification
-                       .from_pretrained(self.HF_NAME)
-                       .to(device)
-                       .eval())
+        try:
+            self._tok = AutoTokenizer.from_pretrained(self.HF_NAME)
+            self._model = (AutoModelForSequenceClassification
+                           .from_pretrained(self.HF_NAME)
+                           .to(device)
+                           .eval())
+        except Exception as exc:
+            from .exceptions import ModelDownloadError
+            raise ModelDownloadError(
+                f"Failed to load {self.HF_NAME!r}: {exc}. "
+                "Check network access or run `scroot download` to pre-cache models."
+            ) from exc
 
     def score_pairs(self, pairs: "list[tuple[str, str]]") -> "list[float]":
         """Return P(claim supported by premise) for each (premise, claim) pair."""
