@@ -608,7 +608,8 @@ responses, tracking quality trends, and exporting fine-tuning data.
 No cloud. No sign-up. Runs entirely on your machine.
 
 ```bash
-scroot serve          # starts at http://localhost:7432
+pip install 'scroot[dashboard]'   # one-time: adds uvicorn + fastapi
+scroot serve                       # starts at http://localhost:7432
 scroot serve --port 8080
 ```
 
