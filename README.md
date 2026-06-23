@@ -29,24 +29,34 @@
 </p>
 
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/sunnyguntuka/scroot@main/assets/feature_icon_strip.svg" alt="Features: NLI scoring, evidence mapping, five metrics, IQS composite score, feedback loop, quality gate" width="680">
+  <a href="https://star-history.com/#sunnyguntuka/scroot&Date">
+    <img src="https://api.star-history.com/svg?repos=sunnyguntuka/scroot&type=Date" width="600" alt="Star history">
+  </a>
+</p>
+
+<p align="center">
+  <img src="https://cdn.jsdelivr.net/gh/sunnyguntuka/scroot@main/assets/feature_icon_strip.svg" alt="Features: factuality classifier, evidence mapping, five metrics, IQS composite score, feedback loop, quality gate" width="680">
 </p>
 
 
 ## Why scroot?
 
+> Built for teams running RAG or LLM agents who need to score every response
+> in CI or production without paying per call or getting a different number
+> each run.
+
 Teams deploying LLM agents and RAG systems can't manually review
 every response. Existing tools use a judge model (a second LLM
 call per evaluation), which costs $0.01–0.05/eval, takes 2–5s,
 and gives non-deterministic results. **scroot** scores every
-response locally using NLI models and embedding similarity.
+response locally using a factuality classifier and embedding similarity.
 Zero cost. Deterministic. 100% coverage.
 
 
 ## How it's different
 
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/sunnyguntuka/scroot@main/assets/readme_approach_comparison.svg" alt="LLM-as-judge approach sends each response to GPT for evaluation; scroot scores locally using NLI cross-encoders and embedding similarity with no API call" width="680">
+  <img src="https://cdn.jsdelivr.net/gh/sunnyguntuka/scroot@main/assets/readme_approach_comparison.svg" alt="LLM-as-judge approach sends each response to GPT for evaluation; scroot scores locally using a factuality classifier and embedding similarity with no API call" width="680">
 </p>
 
 | Capability | scroot (default) | scroot (fast) | RAGAS | DeepEval |
