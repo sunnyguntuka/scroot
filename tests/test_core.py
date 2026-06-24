@@ -119,3 +119,105 @@ class TestAuditor:
             response="Quantum computing uses qubits that can be in superposition...",
         )
         assert result.evidence_map is None
+
+    def test_batch_scoring_tqdm_set_true(self, auditor, monkeypatch):
+        import io
+        import scroot.core as core
+        #Set up class to recieve the stderr to check if tqdm outputs when expected
+        class TTYStderr(io.StringIO):
+            def isatty(self):
+                return True
+
+        items = [
+            {"query": GROUNDED_EXAMPLE["query"], "response": GROUNDED_EXAMPLE["response"], "context": GROUNDED_EXAMPLE["context"]},
+            {"query": HALLUCINATED_EXAMPLE["query"], "response": HALLUCINATED_EXAMPLE["response"], "context": HALLUCINATED_EXAMPLE["context"]},
+            {"query": "Explain AI", "response": "AI stands for artificial intelligence."},
+        ]
+
+        fake_stderr = TTYStderr()
+        monkeypatch.setattr(core.sys, "stderr", fake_stderr)
+
+        results = auditor.score_batch(items, True)
+        output = fake_stderr.getvalue()
+
+        assert "3/3" in output
+        assert len(results) == 3
+        assert all(isinstance(r, EntailmentResult) for r in results)
+
+    def test_batch_scoring_tqdm_set_false(self, auditor, monkeypatch):
+        import io
+        import scroot.core as core
+        #Set up class to recieve the stderr to check if tqdm outputs when not expected
+        class TTYStderr(io.StringIO):
+            def isatty(self):
+                return True
+
+        items = [
+            {"query": GROUNDED_EXAMPLE["query"], "response": GROUNDED_EXAMPLE["response"], "context": GROUNDED_EXAMPLE["context"]},
+            {"query": HALLUCINATED_EXAMPLE["query"], "response": HALLUCINATED_EXAMPLE["response"], "context": HALLUCINATED_EXAMPLE["context"]},
+            {"query": "Explain AI", "response": "AI stands for artificial intelligence."},
+        ]
+
+        #Change stderr to the fake class 
+        fake_stderr = TTYStderr()
+        monkeypatch.setattr(core.sys, "stderr", fake_stderr)
+
+        results = auditor.score_batch(items, False)
+        output = fake_stderr.getvalue()
+
+        assert "3/3" not in output
+        assert len(results) == 3
+        assert all(isinstance(r, EntailmentResult) for r in results)
+
+    def test_batch_scoring_tqdm_disabled_when_not_tty(self, auditor, monkeypatch):
+        import io
+        import scroot.core as core
+        #Set up class to recieve the stderr to check if tqdm outputs when not expected
+        class NonTTYStderr(io.StringIO):
+            def isatty(self):
+                return False
+
+        items = [
+            {"query": GROUNDED_EXAMPLE["query"], "response": GROUNDED_EXAMPLE["response"], "context": GROUNDED_EXAMPLE["context"]},
+            {"query": HALLUCINATED_EXAMPLE["query"], "response": HALLUCINATED_EXAMPLE["response"], "context": HALLUCINATED_EXAMPLE["context"]},
+            {"query": "Explain AI", "response": "AI stands for artificial intelligence."},
+        ]
+
+        #Change stderr to the fake class
+        fake_stderr = NonTTYStderr()
+        monkeypatch.setattr(core.sys, "stderr", fake_stderr)
+
+        results = auditor.score_batch(items, True)
+        output = fake_stderr.getvalue()
+
+        assert "3/3" not in output
+        assert len(results) == 3
+        assert all(isinstance(r, EntailmentResult) for r in results)
+
+    def test_batch_scoring_without_tqdm(self, auditor, monkeypatch):
+        import io
+        import scroot.core as core
+        #Set up class to recieve the stderr to check if tqdm outputs when not expected
+        class TTYStderr(io.StringIO):
+            def isatty(self):
+                return True
+
+        items = [
+            {"query": GROUNDED_EXAMPLE["query"], "response": GROUNDED_EXAMPLE["response"], "context": GROUNDED_EXAMPLE["context"]},
+            {"query": HALLUCINATED_EXAMPLE["query"], "response": HALLUCINATED_EXAMPLE["response"], "context": HALLUCINATED_EXAMPLE["context"]},
+            {"query": "Explain AI", "response": "AI stands for artificial intelligence."},
+        ]
+
+        #Change stderr to the fake class
+        #Change tqdm manually to none
+        fake_stderr = TTYStderr()   
+        monkeypatch.setattr(core.sys, "stderr", fake_stderr)
+        monkeypatch.setattr(core, "tqdm", None)
+
+        results = auditor.score_batch(items, True)
+        output = fake_stderr.getvalue()
+
+        assert "3/3" not in output
+        assert len(results) == 3
+        assert all(isinstance(r, EntailmentResult) for r in results)
+
