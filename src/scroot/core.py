@@ -9,6 +9,13 @@ import logging
 import os
 import time
 import warnings
+import sys
+
+#Graceful import for tqdm depending on if it is installed
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
 
 from .result import EntailmentResult
 from .context.payload import ContextPayload
@@ -486,12 +493,15 @@ class Auditor:
     def score_batch(
         self,
         items: list[dict],
+        progress: bool = True
     ) -> list[EntailmentResult]:
         """Score a batch of responses.
 
         Args:
             items: List of dicts with keys ``"query"``, ``"response"``,
                 and optionally ``"context"`` (list[str]).
+            progress: A boolean representing if the user wants a progress
+                bar to track the loop.
 
         Returns:
             List of :class:`EntailmentResult`, one per item, in order.
@@ -504,11 +514,23 @@ class Auditor:
                 f"Batch size {len(items)} exceeds max_batch_size={self.max_batch_size}. "
                 f"Split into smaller batches or increase max_batch_size."
             )
+
+        #Show_progress is true if not run from a terminal, progress wasnt set to false, and tqdm is installed
+        show_progress = (
+        sys.stderr.isatty()
+        and progress
+        and tqdm is not None
+        )
+
+        #The iterable is set to tqdm if show_progress is true, items otherwise.
+        iterable = tqdm(items) if show_progress else items
+
+
         return [
             self.score(
                 query=item["query"],
                 response=item["response"],
                 context=item.get("context"),
             )
-            for item in items
+            for item in iterable
         ]
