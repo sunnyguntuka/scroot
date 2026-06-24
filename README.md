@@ -446,7 +446,8 @@ to 0 - that's a real failure, not missing data. See
 results = auditor.score_batch([
     {"query": "...", "response": "...", "context": ["..."]},
     {"query": "...", "response": "..."},  # no context
-])
+],  progress=True #optional. Default true. If true, shows progress bar.
+)
 ```
 
 
