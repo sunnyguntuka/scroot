@@ -500,8 +500,9 @@ class Auditor:
         Args:
             items: List of dicts with keys ``"query"``, ``"response"``,
                 and optionally ``"context"`` (list[str]).
-            progress: A boolean representing if the user wants a progress
-                bar to track the loop.
+            progress: Show a tqdm progress bar when ``True`` (default).
+                Bar is suppressed automatically in non-TTY environments or
+                when tqdm is not installed.
 
         Returns:
             List of :class:`EntailmentResult`, one per item, in order.
@@ -515,17 +516,8 @@ class Auditor:
                 f"Split into smaller batches or increase max_batch_size."
             )
 
-        #Show_progress is true if not run from a terminal, progress wasnt set to false, and tqdm is installed
-        show_progress = (
-        sys.stderr.isatty()
-        and progress
-        and tqdm is not None
-        )
-
-        #The iterable is set to tqdm if show_progress is true, items otherwise.
+        show_progress = sys.stderr.isatty() and progress and tqdm is not None
         iterable = tqdm(items) if show_progress else items
-
-
         return [
             self.score(
                 query=item["query"],
