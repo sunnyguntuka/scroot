@@ -4,5 +4,5 @@
 # scroot itself is installed editable by setup_notebook_kernel.{ps1,sh}
 
 matplotlib>=3.7
-ipykernel>=6.31.0
-notebook>=7.5.7
+ipykernel>=7.3.0
+notebook>=7.6.0
