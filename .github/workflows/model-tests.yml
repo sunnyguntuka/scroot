@@ -22,7 +22,7 @@ jobs:
           python-version: "3.11"
 
       - name: Cache HuggingFace models
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/huggingface
           key: hf-models-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
